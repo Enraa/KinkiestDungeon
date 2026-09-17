@@ -640,6 +640,16 @@ const KDSprites: KDSprites = {
 	"N": (_x, _y, _Fog, _noReplace) => {
 		return "Floor";
 	},
+    "E": (_x, _y, _Fog, _noReplace) => {
+        let tileAbove = KinkyDungeonMapGet(_x, _y - 1);
+        if (KDWallReplacers.includes(tileAbove) && (!_noReplace || !_noReplace.includes(tileAbove))) {
+            return 'WallWater';
+        }
+        if ('0'.includes(tileAbove)) {
+            return 'FloorWater';
+        }
+        return "Water";
+    }
 };
 
 const KDOverlays: KDSprites = {
