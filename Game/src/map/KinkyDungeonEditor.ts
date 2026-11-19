@@ -117,6 +117,7 @@ let KDTilePalette = {
 	'LatexGreen':  {type: "effect", effectTile: "LatexGreen"},
 	'WallHook': {type: "tile", tile: ','},
 	'CeilingHook': {type: "tile", tile: '?'},
+    'Water': {type: "tile", tile: "E"},
 	'----Deco----': {type: "none"},
 	'Rubble(mend)':  {type: "effect", effectTile: "Rubble"},
 	'Rubble(nomend)':  {type: "effect", effectTile: "RubbleNoMend"},

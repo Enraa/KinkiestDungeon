@@ -135,7 +135,7 @@ let KinkyDungeonTransparentObjects = KDInteractableTiles
 	.replace("D", "")
 	.replace("g", "") // grate
 	.replace("Y", "") // wall rubble
-	+ "OoAaMmCcB@lb+=-FXu7";
+	+ "OoAaMmCcB@lb+=-FXu7E";
 let KinkyDungeonTransparentMovableObjects = KDInteractableTiles
 	.replace("Z", "") // AutoDoor
 	.replace("D", "") // Door
