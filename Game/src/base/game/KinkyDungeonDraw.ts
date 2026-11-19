@@ -642,11 +642,43 @@ const KDSprites: KDSprites = {
 	},
     "E": (_x, _y, _Fog, _noReplace) => {
         let tileAbove = KinkyDungeonMapGet(_x, _y - 1);
+        let tileRight = KinkyDungeonMapGet(_x + 1, _y);
+        let tileLeft = KinkyDungeonMapGet(_x - 1, _y);
+        // If there's a wall above, then return a left or right shore if necessary, or just the wall border tile.
         if (KDWallReplacers.includes(tileAbove) && (!_noReplace || !_noReplace.includes(tileAbove))) {
+            if ('0'.includes(tileRight)) {
+                if ('0'.includes(tileLeft)) {
+                    return 'WallWaterBoth'
+                }
+                return 'WallWaterRight'
+            } 
+            if ('0'.includes(tileLeft)) {
+                return 'WallWaterLeft'
+            }
             return 'WallWater';
         }
+        // If there's a floor above, then left/right corner if necessary
         if ('0'.includes(tileAbove)) {
+            if ('0'.includes(tileRight)) {
+                if ('0'.includes(tileLeft)) {
+                    return 'FloorWaterBoth'
+                }
+                return 'FloorWaterRight'
+            } 
+            if ('0'.includes(tileLeft)) {
+                return 'FloorWaterLeft'
+            }
             return 'FloorWater';
+        }
+        // Finally, if there's a left or right border, return that. 
+        if ('0'.includes(tileRight)) {
+            if ('0'.includes(tileLeft)) {
+                return 'WaterBoth'
+            }
+            return 'WaterRight'
+        } 
+        if ('0'.includes(tileLeft)) {
+            return 'WaterLeft'
         }
         return "Water";
     }
