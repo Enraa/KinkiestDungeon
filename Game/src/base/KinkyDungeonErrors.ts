@@ -111,7 +111,7 @@ function KinkyDungeonCrashReportSaveData(): string {
 	let saveData = localStorage.getItem("KinkyDungeonSave");
 	if (!saveData) {
 		try {
-			saveData = LZString.compressToBase64(JSON.stringify(KinkyDungeonGenerateSaveData()));
+			saveData = KDCompressSync(JSON.stringify(KinkyDungeonGenerateSaveData()));
 		} catch (error) {
 			saveData = "Could not locate or generate save data";
 		}
@@ -121,6 +121,38 @@ function KinkyDungeonCrashReportSaveData(): string {
 		"",
 		saveData,
 	].join("\n");
+}
+
+/**
+ * Generates a report for a save that failed to load, including the save code that was attempted
+ */
+function KinkyDungeonGenerateLoadErrorReport(saveCode: string, error?: any): string {
+	return [
+		"========== Kinky Dungeon Load Error ==========",
+		"",
+		TextGetFallback("KDLoadError", "Error loading save! Please copy save code and post a bug report."),
+		"",
+		error ? `Message: ${error?.message || error}` : "Message: Failed to decode or other error",
+		error?.stack ? KinkyDungeonStackSanitize(error.stack) : "",
+		KinkyDungeonCrashReportStateData(),
+		KinkyDungeonCrashReportDiagnostics(),
+		KinkyDungeonCrashReportDeviceDetails(),
+		"========== Save Data ==========",
+		"",
+		saveCode || "No save code found",
+	].join("\n\n");
+}
+
+function KDTryLoadGame(saveCode: string = null, kdloadconsent = false): boolean {
+	let src = saveCode || localStorage.getItem('KinkyDungeonSave') || loadedsaveslots[KDSaveSlot-1];
+	try {
+		if (KinkyDungeonLoadGame(saveCode, kdloadconsent)) return true;
+		KinkyDungeonShowCrashReportModal(KinkyDungeonGenerateLoadErrorReport(src));
+	} catch (err) {
+		console.error(err);
+		KinkyDungeonShowCrashReportModal(KinkyDungeonGenerateLoadErrorReport(src, err));
+	}
+	return false;
 }
 
 /**
@@ -214,7 +246,7 @@ function KinkyDungeonShowCrashReportModal(report: string) {
 	heading.appendChild(KinkyDungeonErrorImage("WolfgirlPet"));
 	heading.appendChild(KinkyDungeonErrorImage("Wolfgirl"));
 	heading.appendChild(KinkyDungeonErrorImage("WolfgirlPet"));
-	heading.appendChild(document.createTextNode("Kinky Dungeon Crash Handler"));
+	heading.appendChild(document.createTextNode(TextGetFallback("KDErrorModalHeading", "Kinky Dungeon Crash Handler")));
 	heading.appendChild(KinkyDungeonErrorImage("WolfgirlPet"));
 	heading.appendChild(KinkyDungeonErrorImage("Wolfgirl"));
 	heading.appendChild(KinkyDungeonErrorImage("WolfgirlPet"));
@@ -228,12 +260,12 @@ function KinkyDungeonShowCrashReportModal(report: string) {
 	modal.appendChild(hr);
 
 	modal.appendChild(KinkyDungeonErrorPreamble([
-		"An error has occurred whilst Kinky Dungeon was running. ",
-		"You may be able to continue playing, but Kinky Dungeon might not function correctly.",
+		TextGetFallback("KDErrorModalOccurred", "An error has occurred whilst Kinky Dungeon was running. "),
+		TextGetFallback("KDErrorModalContinue", "You may be able to continue playing, but Kinky Dungeon might not function correctly."),
 	]));
 	modal.appendChild(KinkyDungeonErrorPreamble([
-		"Please report this error in the Kinky Dungeon Discord so that we can dispatch our team of highly-trained wolfgirls to fix it.",
-		"When you make your report, please include the following debug information - the wolfgirls will appreciate it!",
+		TextGetFallback("KDErrorModalReport", "Please report this error in the Kinky Dungeon Discord so that we can dispatch our team of highly-trained wolfgirls to fix it."),
+		TextGetFallback("KDErrorModalDebugInfo", "When you make your report, please include the following debug information - the wolfgirls will appreciate it!"),
 	]));
 
 	const pre = document.createElement("pre");
@@ -261,17 +293,17 @@ function KinkyDungeonShowCrashReportModal(report: string) {
 	});
 	modal.appendChild(buttons);
 
-	const copyButton = KinkyDungeonErrorModalButton("Copy to clipboard");
+	const copyButton = KinkyDungeonErrorModalButton(TextGetFallback("KDErrorModalCopy", "Copy to clipboard"));
 	copyButton.addEventListener("click", () => {
 		KinkyDungeonErrorCopy(report, pre)
 			.then(copied => {
-				copyButton.textContent = copied ? "Awoo!" : "Failed";
+				copyButton.textContent = copied ? TextGetFallback("KDErrorModalCopied", "Awoo!") : TextGetFallback("KDErrorModalCopyFailed", "Failed");
 			})
 			.catch(() => void 0);
 	});
 	buttons.appendChild(copyButton);
 
-	const closeButton = KinkyDungeonErrorModalButton("Close");
+	const closeButton = KinkyDungeonErrorModalButton(TextGetFallback("KDErrorModalClose", "Close"));
 	closeButton.addEventListener("click", () => {
 		backdrop.remove();
 	});

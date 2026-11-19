@@ -341,7 +341,7 @@ function KinkyDungeonPayShrine(type: string, mult: number = 1) {
 	} else if (type == "Elements" || type == "Illusion" || type == "Conjure") {
 		ShrineMsg = TextGet("KinkyDungeonPayShrineBuff" + type).replace("SCHOOL", TextGet("KinkyDungeonSpellsSchool" + type));
 		if (type == "Elements") {
-			KinkyDungeonApplyBuffToEntity(KinkyDungeonPlayerEntity, {
+			KDApplyBuffToEntity(KinkyDungeonPlayerEntity, {
 				id: "ShrineElements",
 				type: "event",
 				maxCount: 10,
@@ -354,7 +354,7 @@ function KinkyDungeonPayShrine(type: string, mult: number = 1) {
 				],
 			});
 		} else if (type == "Conjure") {
-			KinkyDungeonApplyBuffToEntity(KinkyDungeonPlayerEntity, {
+			KDApplyBuffToEntity(KinkyDungeonPlayerEntity, {
 				id: "ShrineConjure",
 				type: "bondageImmune",
 				maxCount: 3,
@@ -366,10 +366,10 @@ function KinkyDungeonPayShrine(type: string, mult: number = 1) {
 					//{trigger: "beforeAttack", type: "CounterattackSpell", spell: "ArcaneStrike", requiredTag: "shrineConjure", prereq: "hit-hostile"},
 				],
 			});
-			//KinkyDungeonApplyBuffToEntity(KinkyDungeonPlayerEntity, {id: "ShrineConjure2", type: "SpellResist", maxCount: 10, tags: ["defense", "shrineConjure", "bondageResist"], power: 5, duration: 9999});
-			//KinkyDungeonApplyBuffToEntity(KinkyDungeonPlayerEntity, {id: "ShrineConjure3", type: "Armor", maxCount: 10, tags: ["defense", "shrineConjure", "bondageResist"], power: 5, duration: 9999});
+			//KDApplyBuffToEntity(KinkyDungeonPlayerEntity, {id: "ShrineConjure2", type: "SpellResist", maxCount: 10, tags: ["defense", "shrineConjure", "bondageResist"], power: 5, duration: 9999});
+			//KDApplyBuffToEntity(KinkyDungeonPlayerEntity, {id: "ShrineConjure3", type: "Armor", maxCount: 10, tags: ["defense", "shrineConjure", "bondageResist"], power: 5, duration: 9999});
 		} else if (type == "Illusion") {
-			KinkyDungeonApplyBuffToEntity(KinkyDungeonPlayerEntity, {
+			KDApplyBuffToEntity(KinkyDungeonPlayerEntity, {
 				id: "ShrineIllusion",
 				type: "event",
 				maxCount: 10,
@@ -431,12 +431,17 @@ function KinkyDungeonPayShrine(type: string, mult: number = 1) {
 				});
 			if (!KDGameData.ShopRewardProgramThreshold) KDGameData.ShopRewardProgramThreshold = KDRewardProgramBase;
 			if (!KDGameData.ShopRewardProgram) KDGameData.ShopRewardProgram = 0;
-			if (point && "02".includes(KinkyDungeonMapGet(point.x, point.y))
-				&& KDGameData.ShopRewardProgram > KDGameData.ShopRewardProgramThreshold) {
-				KDGameData.ShopRewardProgram = 0;
+			if (KDGameData.ShopRewardProgram > KDGameData.ShopRewardProgramThreshold) {
+				KDGameData.ShopRewardProgram -= KDGameData.ShopRewardProgramThreshold;
 				KDGameData.ShopRewardProgramThreshold += KDRewardProgramScaling;
-				KinkyDungeonMapSet(point.x, point.y, ';');
-				KinkyDungeonTilesSet("" + (point.x) + "," + (point.y), {Portal: "CommercePortal", Light: 5, lightColor: 0xffff88});
+				if (KDGameData.ShopkeeperFavors == undefined) KDGameData.ShopkeeperFavors = 0;
+				KDGameData.ShopkeeperFavors++;
+				if (!KinkyDungeonFlags.get("commercePortal") &&  point && "02".includes(KinkyDungeonMapGet(point.x, point.y))) {
+					KinkyDungeonMapSet(point.x, point.y, ';');
+					KinkyDungeonSetFlag("commercePortal", 300, -1);
+					KinkyDungeonTilesSet("" + (point.x) + "," + (point.y), {Portal: "CommercePortal", Light: 5, lightColor: 0xffff88});
+				}
+				
 			}
 
 			rep = item.rarity + 1;
@@ -831,7 +836,7 @@ function KinkyDungeonGetMapShrines(Dict: any) {
 
 function KinkyDungeonTakeOrb(Amount: number, X: number, Y: number) {
 	KinkyDungeonSetFlag("NoDialogue", 3);
-	KinkyDungeonDrawState = "Orb";
+	KDGoToScreen("Orb");
 	KinkyDungeonOrbAmount = Amount;
 	KDOrbX = X;
 	KDOrbY = Y;
@@ -861,7 +866,7 @@ function KinkyDungeonDrawOrb() {
 			let color = KDBarColor(value);
 			DrawButtonKDEx("orbspell" + shrine, (_b) => {
 				KDSendInput("orb", {shrine: shrine, Amount: 1, Rep: 1 * KinkyDungeonMultiplicativeStat(KDEntityBuffedStat(KinkyDungeonPlayerEntity, "DivinePrivilege")), x: KDOrbX, y: KDOrbY});
-				KinkyDungeonDrawState = "Game";
+				KDGoToScreen("Game");
 				KDResetAlternateInventoryRender();
 				return true;
 			}, true, canvasOffsetX_ui + XX - 100, yPad + canvasOffsetY_ui + spacing * i - 27, 250, 55, TextGet("KinkyDungeonShrine" + shrine), KDBaseWhite);
@@ -877,13 +882,13 @@ function KinkyDungeonDrawOrb() {
 	DrawButtonKDEx("orbspellrandom", (_b) => {
 		let shrine = Object.keys(KinkyDungeonShrineBaseCosts)[Math.floor(KDRandom() * Object.keys(KinkyDungeonShrineBaseCosts).length)];
 		KDSendInput("orb", {shrine: shrine, Amount: 1, Rep: 0.9 * KinkyDungeonMultiplicativeStat(KDEntityBuffedStat(KinkyDungeonPlayerEntity, "DivinePrivilege")), x: KDOrbX, y: KDOrbY});
-		KinkyDungeonDrawState = "Game";
+		KDGoToScreen("Game");
 		KDResetAlternateInventoryRender();
 		return true;
 	}, true, canvasOffsetX_ui + XX - 100, yPad + canvasOffsetY_ui + spacing * i - 27, 250, 55, TextGet("KinkyDungeonSurpriseMe"), KDBaseWhite);
 	i += 2;
 	DrawButtonKDEx("cancelorb", (_bdata) => {
-		KinkyDungeonDrawState = "Game";
+		KDGoToScreen("Game");
 		KDResetAlternateInventoryRender();
 		return true;
 	}, true, canvasOffsetX_ui + 525, yPad + canvasOffsetY_ui + spacing * i, 425, 55, TextGet("KinkyDungeonCancel"), KDBaseWhite);
@@ -908,7 +913,7 @@ function KinkyDungeonTakePerk(Amount: number, X: number, Y: number) {
 	KDPerkOrbPerks = KinkyDungeonTilesGet(X + "," + Y).Perks;
 	KDPerkOrbBondage = KinkyDungeonTilesGet(X + "," + Y).Bondage;
 	KDPerkOrbMethod = KinkyDungeonTilesGet(X + "," + Y).Method;
-	//KinkyDungeonDrawState = "PerkOrb";
+	//KDGoToScreen("PerkOrb");
 	KinkyDungeonOrbAmount = Amount;
 	KDOrbX = X;
 	KDOrbY = Y;
@@ -959,7 +964,8 @@ function KinkyDungeonDrawPerkOrb() {
                 }
                 if (bondage) {
                     for (let b of bondage) {
-                        KinkyDungeonAddRestraintIfWeaker(KinkyDungeonGetRestraintByName(b), 20, true, "Gold", true);
+                        KinkyDungeonAddRestraintIfWeaker(KinkyDungeonGetRestraintByName(b), 
+						20, true, "GoldPlus", true);
                     }
                 }
                 if (method) {

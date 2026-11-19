@@ -26,7 +26,7 @@ KDPrisonTypes.DollShoppe = {
 					KinkyDungeonSetEnemyFlag(en, "punishdoll", 9999);
 				} else
 					idleDoll.push(en);
-			} else if (en.faction == "Enemy" && en.Enemy?.tags.jailer && en != KinkyDungeonJailGuard() && en != KinkyDungeonLeashingEnemy()
+			} else if (en.faction == "Dressmaker" && en.Enemy?.tags.jailer && en != KinkyDungeonJailGuard() && en != KinkyDungeonLeashingEnemy()
 				&& !KDEnemyHasFlag(en, "despawn")
 				&& (en.idle || KDEnemyHasFlag(en, "idleg"))) {
 				idleGuard.push(en);
@@ -75,7 +75,7 @@ KDPrisonTypes.DollShoppe = {
 					}
 				} else {
 					KinkyDungeonSetEnemyFlag(gg, "idlegselect", 2);
-					KinkyDungeonSetEnemyFlag(gg, "overrideMove", 10);
+					KinkyDungeonSetEnemyFlag(gg, "overrideMoveNoCom", 4);
 					gg.gx = doll.x;
 					gg.gy = doll.y;
 					KDUpdateMoveToEntity(gg);
@@ -123,7 +123,7 @@ KDPrisonTypes.DollShoppe = {
 							doll.hp = 0;
 						} else {
 							KinkyDungeonSetEnemyFlag(gg, "idlegselect", 2);
-							KinkyDungeonSetEnemyFlag(gg, "overrideMove", 10);
+							KinkyDungeonSetEnemyFlag(gg, "overrideMoveNoCom", 4);
 							KinkyDungeonSetEnemyFlag(gg, "leashPrisoner", 3);
 							KinkyDungeonAttachTetherToEntity(1.5, gg, doll, "DollLeash", KDBasePink, 6);
 							gg.gx = storage.x;
@@ -141,7 +141,7 @@ KDPrisonTypes.DollShoppe = {
 					}
 				} else {
 					KinkyDungeonSetEnemyFlag(gg, "idlegselect", 2);
-					KinkyDungeonSetEnemyFlag(gg, "overrideMove", 10);
+					KinkyDungeonSetEnemyFlag(gg, "overrideMoveNoCom", 4);
 					gg.gx = doll.x;
 					gg.gy = doll.y;
 					KDUpdateMoveToEntity(gg);
@@ -198,7 +198,7 @@ KDPrisonTypes.DollShoppe = {
 							gg.movePoints = 0;
 						} else {
 							KinkyDungeonSetEnemyFlag(gg, "idlegselect", 2);
-							KinkyDungeonSetEnemyFlag(gg, "overrideMove", 10);
+							KinkyDungeonSetEnemyFlag(gg, "overrideMoveNoCom", 4);
 							KinkyDungeonSetEnemyFlag(gg, "leashPrisoner", 3);
 							KinkyDungeonAttachTetherToEntity(1.5, gg, doll, "DollLeash", KDBasePink, 6);
 							gg.gx = storage.x;
@@ -216,7 +216,7 @@ KDPrisonTypes.DollShoppe = {
 					}
 				} else {
 					KinkyDungeonSetEnemyFlag(gg, "idlegselect", 2);
-					KinkyDungeonSetEnemyFlag(gg, "overrideMove", 10);
+					KinkyDungeonSetEnemyFlag(gg, "overrideMoveNoCom", 4);
 					gg.gx = doll.x;
 					gg.gy = doll.y;
 					KDUpdateMoveToEntity(gg);
@@ -228,13 +228,14 @@ KDPrisonTypes.DollShoppe = {
 		let idleGuards: entity[] = [];
 		let guardCount = 0;
 		for (let en of KDMapData.Entities) {
-			if (en.faction == "Enemy" && !(en.Enemy?.tags?.prisoner || en.Enemy?.tags?.formerprisoner) ) {
+			if (en.faction == "Dressmaker" && !(en.Enemy?.tags?.prisoner || en.Enemy?.tags?.formerprisoner) ) {
 				if (en != KinkyDungeonJailGuard() && en != KinkyDungeonLeashingEnemy() && (en.idle && !KDEnemyHasFlag(en, "idlegselect")))
 					idleGuards.push(en);
 				if (en.Enemy.tags.jailer) guardCount += 1;
 			}
 		}
-		if (guardCount > 15) {
+		let gc = 15;
+		if (guardCount > gc) {
 			for (let en of idleGuards) {
 				KinkyDungeonSetEnemyFlag(en, "despawn", 300);
 				KinkyDungeonSetEnemyFlag(en, "vis_despawn", 300);
@@ -246,7 +247,8 @@ KDPrisonTypes.DollShoppe = {
 				en.despawnY = KDMapData.EndPosition.y;
 				en.goToDespawn = true;
 			}
-		} else if (!KinkyDungeonFlags.get("guardspawn")) {
+		}
+		if (KinkyDungeonFlags.get("requestCommonGuard") || (guardCount <= gc && !KinkyDungeonFlags.get("guardspawn"))) {
 			// TODO replace with map flags
 			// spawn a new one
 			if (KinkyDungeonFlags.get("shiftchange")) {
@@ -274,14 +276,14 @@ KDPrisonTypes.DollShoppe = {
 					let en = DialogueCreateEnemy(sl.x, sl.y, Enemy.name);
 					//KDProcessCustomPatron(Enemy, en, 0.5, false);
 					en.AI = "looseguard";
-					en.faction = "Enemy";
+					en.faction = "Dressmaker";
 					en.keys = true;
 					en.gxx = l.x;
 					en.gyy = l.y;
 					en.gx = l.x;
 					en.gy = l.y;
 					KinkyDungeonSetEnemyFlag(en, "mapguard", -1);
-					KinkyDungeonSetEnemyFlag(en, "cyberaccess", -1);
+					KinkyDungeonSetFlag("requestCommonGuard", 0);
 				}
 			}
 		}
@@ -395,7 +397,7 @@ KDPrisonTypes.DollShoppe = {
 		for (let en of idleGuards) {
 			if (!KDEnemyHasFlag(en, "patrol")
 				&& !KDEnemyHasFlag(en, "idlegselect")
-				&& !KDEnemyHasFlag(en, "overrideMove")
+				&& !KDEnemyHasFlag(en, "overrideMoveNoCom")
 				&& !KDEnemyHasFlag(en, "despawn")
 				&& en != KinkyDungeonJailGuard()
 				&& en != KinkyDungeonLeashingEnemy()) {
@@ -429,10 +431,9 @@ KDPrisonTypes.DollShoppe = {
 							let en = DialogueCreateEnemy(l.x, l.y, Enemy.name);
 							//KDProcessCustomPatron(Enemy, en, 0.5, false);
 							en.AI = "looseguard";
-							en.faction = "Enemy";
+							en.faction = "Dressmaker";
 							en.keys = true;
 							KinkyDungeonSetEnemyFlag(en, "mapguard", -1);
-							KinkyDungeonSetEnemyFlag(en, "cyberaccess", -1);
 						}
 
 					}
@@ -445,10 +446,9 @@ KDPrisonTypes.DollShoppe = {
 							let en = DialogueCreateEnemy(l.x, l.y, Enemy.name);
 							//KDProcessCustomPatron(Enemy, en, 0.1, false);
 							en.AI = "hunt";
-							en.faction = "Enemy";
+							en.faction = "Dressmaker";
 							en.keys = true;
 							KinkyDungeonSetEnemyFlag(en, "mapguard", -1);
-							KinkyDungeonSetEnemyFlag(en, "cyberaccess", -1);
 						}
 
 					}
@@ -471,7 +471,7 @@ KDPrisonTypes.DollShoppe = {
 
 
 				let lostTrack = KDLostJailTrack(player);
-				if (lostTrack == "Unaware") {
+				if (KDNoInteractResults.includes(lostTrack)) {
 					return KDSetPrisonState(player, "Jail");
 				}
 				if (KDGameData.PrisonerState == 'parole') 
@@ -484,7 +484,8 @@ KDPrisonTypes.DollShoppe = {
 						return "Uniform";
 					}
 
-					if (!KinkyDungeonFlags.get("transformCD") && !KinkyDungeonStatsChoice.get("NoDollTransform") && !KinkyDungeonFlags.get("Transformed")
+					if (!KinkyDungeonFlags.get("transformCD")
+						&& !KinkyDungeonStatsChoice.get("NoDollTransform") && !KinkyDungeonFlags.get("Transformed")
 						&& (KDCanBeDolled(player))) {
 						return "Transform";
 					}
@@ -492,6 +493,10 @@ KDPrisonTypes.DollShoppe = {
 					if (!KinkyDungeonFlags.get("displayCD")) {
 						KinkyDungeonFlags.set("PrisonStorageTimer", 0);
 						return "Display";
+					}
+
+					if (KDSoundEnabled() && KDMusicVolume > 0 && KDCurrentSong != "Dressmaker-Shop.ogg") {
+						KDPlayMusic("Dressmaker-Shop.ogg", undefined, true);
 					}
 					
 					return "Storage";
@@ -512,7 +517,7 @@ KDPrisonTypes.DollShoppe = {
 
 
 				let lostTrack = KDLostJailTrack(player);
-				if (lostTrack == "Unaware") {
+				if (KDNoInteractResults.includes(lostTrack)) {
 					return KDSetPrisonState(player, "Jail");
 				}
 
@@ -533,7 +538,7 @@ KDPrisonTypes.DollShoppe = {
 						guard.gy = player.y;
 						KDUpdateMoveToEntity(guard);
 						KinkyDungeonSetEnemyFlag(guard, "wander", 30)
-						KinkyDungeonSetEnemyFlag(guard, "overrideMove", 10);
+						KinkyDungeonSetEnemyFlag(guard, "overrideMoveNoCom", 4);
 					}
 					if (KDGameData.PrisonerState == 'jail') {
 						KinkyDungeonSetEnemyFlag(guard, "notouchie", 2);
@@ -593,7 +598,7 @@ KDPrisonTypes.DollShoppe = {
 					if (guard.IntentAction != action)
 						KDIntentEvents[action].trigger(guard, {});
 					else guard.playWithPlayer = Math.max(guard.playWithPlayer, 3);
-					KinkyDungeonSetEnemyFlag(guard, "overrideMove", 2);
+					KinkyDungeonSetEnemyFlag(guard, "overrideMoveNoCom", 2);
 					if (KDistChebyshev(guard.x - player.x, guard.y - player.y) < 1.5) {
 						if (KDPrisonIsInFurniture(player)) {
 							// Remove one per turn
@@ -627,7 +632,7 @@ KDPrisonTypes.DollShoppe = {
 						if (guard.IntentAction != action)
 							KDIntentEvents[action].trigger(guard, {});
 						else guard.playWithPlayer = Math.max(guard.playWithPlayer, 3);
-						KinkyDungeonSetEnemyFlag(guard, "overrideMove", 2);
+						KinkyDungeonSetEnemyFlag(guard, "overrideMoveNoCom", 2);
 						if (KDistChebyshev(guard.x - player.x, guard.y - player.y) < 1.5) {
 
 							let lockType = "Purple";
@@ -691,7 +696,7 @@ KDPrisonTypes.DollShoppe = {
 				let player = KinkyDungeonPlayerEntity;
 
 				let lostTrack = KDLostJailTrack(player);
-				if (lostTrack == "Unaware") {
+				if (KDNoInteractResults.includes(lostTrack)) {
 					return KDSetPrisonState(player, "Jail");
 				}
 
@@ -715,7 +720,7 @@ KDPrisonTypes.DollShoppe = {
 							guard.gy = player.y;
 							KDUpdateMoveToEntity(guard);
 							KinkyDungeonSetEnemyFlag(guard, "wander", 30)
-							KinkyDungeonSetEnemyFlag(guard, "overrideMove", 10);
+							KinkyDungeonSetEnemyFlag(guard, "overrideMoveNoCom", 4);
 						}
 
 						if (KinkyDungeonLeashingEnemy() == guard) {
@@ -757,6 +762,8 @@ KDPrisonTypes.DollShoppe = {
 				let rad = 3;
 				if (label && (KDistEuclidean(label.x - player.x, label.y - player.y) > rad)) {
 					KDSelectLabel(player, label);
+					if (!KinkyDungeonFlags.get("displayCD"))
+						KDPlayMusic("NightMarket.ogg", undefined, true);
 					KinkyDungeonSetFlag("displayCD", 900);
 					KDRerollJailFlags(player);
 					KinkyDungeonSetFlag("JailRandom", 900); // reroll the random masks
@@ -789,7 +796,7 @@ KDPrisonTypes.DollShoppe = {
 				let rad = 3;
 
 				let lostTrack = KDLostJailTrack(player);
-				if (lostTrack == "Unaware") {
+				if (KDNoInteractResults.includes(lostTrack)) {
 					return KDSetPrisonState(player, "Jail");
 				}
 
@@ -814,7 +821,7 @@ KDPrisonTypes.DollShoppe = {
 							guard.gy = player.y;
 							KDUpdateMoveToEntity(guard);
 							KinkyDungeonSetEnemyFlag(guard, "wander", 30)
-							KinkyDungeonSetEnemyFlag(guard, "overrideMove", 10);
+							KinkyDungeonSetEnemyFlag(guard, "overrideMoveNoCom", 4);
 						}
 						if (KinkyDungeonLeashingEnemy() == guard) {
 							// Make the guard focus on leashing more strongly, not attacking or pickpocketing
@@ -943,7 +950,7 @@ KDPrisonTypes.DollShoppe = {
 				let rad = 3;
 
 				let lostTrack = KDLostJailTrack(player);
-				if (lostTrack == "Unaware") {
+				if (KDNoInteractResults.includes(lostTrack)) {
 					return KDSetPrisonState(player, "Jail");
 				}
 
@@ -967,7 +974,7 @@ KDPrisonTypes.DollShoppe = {
 							guard.gy = player.y;
 							KDUpdateMoveToEntity(guard);
 							KinkyDungeonSetEnemyFlag(guard, "wander", 30)
-							KinkyDungeonSetEnemyFlag(guard, "overrideMove", 10);
+							KinkyDungeonSetEnemyFlag(guard, "overrideMoveNoCom", 4);
 						}
 						if (KinkyDungeonLeashingEnemy() == guard) {
 							// Make the guard focus on leashing more strongly, not attacking or pickpocketing
@@ -1010,6 +1017,7 @@ function KDPrisonPuppetmasterGuard(player: entity, _call: boolean = false, suppr
 	}));
 	if (guard)
 		KDGameData.JailGuard = guard.id;
+	else return null;
 
 	return KinkyDungeonJailGuard();
 }
@@ -1053,7 +1061,7 @@ function KDGetLabel(entity: entity) {
 }
 
 function KDCanBeDolled(player: entity) {
-	return KinkyDungeonFlags.get("annoy_puppet")
+	return !!KinkyDungeonFlags.get("annoy_puppet")
 		|| KDFactionRelation("Player", "Dressmaker") <= KDREPHOSTILE 
 		|| KDEntityBuffedStat(player, "Hypno_Doll") > 10;
 }

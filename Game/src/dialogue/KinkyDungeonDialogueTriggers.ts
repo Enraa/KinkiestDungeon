@@ -18,6 +18,8 @@ let KDDialogueTriggers: Record<string, KinkyDialogueTrigger> = {
 				&& !KinkyDungeonPlayerDamage.unarmed
 				&& KinkyDungeonPlayerDamage.name
 				&& dist < 3.9
+				
+				&& !KDPlayerCantRespond()
 				&& KDGetMainFaction() != "Player"
 				&& (KDHostile(enemy)
 					|| KDFactionFavorable(KDGetFaction(enemy), KDGetMainFaction()))
@@ -183,7 +185,9 @@ let KDDialogueTriggers: Record<string, KinkyDialogueTrigger> = {
 				&& !KinkyDungeonFlags.get("BondageOffer")
 				&& !KinkyDungeonFlags.get("ChastityOffer")
 				&& !KinkyDungeonFlags.get("NoTalk")
+				&& !KinkyDungeonFlags.get("conveyed_rec")
 				&& KDRandom() < 0.05
+				&& !KDPlayerCantRespond()
 				&& KinkyDungeonGetRestraint({tags: ["genericChastity"]}, MiniGameKinkyDungeonLevel * 2, KDCurrIndex(), false, undefined,
 					undefined,
 					undefined,
@@ -219,8 +223,10 @@ let KDDialogueTriggers: Record<string, KinkyDialogueTrigger> = {
 				&& !KinkyDungeonFlags.get("DangerFlag")
 				&& !KinkyDungeonFlags.get("BondageOffer")
 				&& !KinkyDungeonFlags.get("NoTalk")
+				&& !KinkyDungeonFlags.get("conveyed_rec")
 				&& !KinkyDungeonFlags.get("CursedOffer")
 				&& KDRandom() < 0.05
+				&& !KDPlayerCantRespond()
 				&& KinkyDungeonGetRestraint({tags: ["leatherRestraints", "noBelt", "leatherHeels"]}, MiniGameKinkyDungeonLevel * 2, KDCurrIndex(), false, undefined,
 					undefined,
 					undefined,
@@ -279,6 +285,8 @@ function KDDefaultPrereqs(enemy: entity, AIData: any, dist: number, maxdist: num
 			&& (!KinkyDungeonFlags.get("DangerFlag") || force)
 			&& (!KinkyDungeonFlags.get("BondageOffer") || force)
 			&& !KinkyDungeonFlags.get("NoTalk")
+			&& !KinkyDungeonFlags.get("conveyed_rec")
+			&& !KDPlayerCantRespond()
 			&& (KinkyDungeonStatsChoice.get("Undeniable") || KDRandom() < chance || force)
 			&& (!restraintTags || KinkyDungeonGetRestraint(
 				{tags: restraintTags},
@@ -318,6 +326,7 @@ function KDShopTrigger(name: string): KinkyDialogueTrigger {
 				&& !KinkyDungeonFlags.get("NoTalk")
 				&& !KDGameData.NoForceGreet
 				&& !(KDGameData.SleepTurns > 0)
+				&& !KDPlayerCantRespond()
 				&& KDEnemyHasFlag(enemy, name)
 				&& !KDEnemyHasFlag(enemy, "NoShop")) {
 					if (KDGameData.PrisonerState != "jail" && KDGameData.PrisonerState != "parole") return true;
@@ -358,6 +367,7 @@ function KDRecruitTrigger(name: string, dialogue: KinkyDialogue): KinkyDialogueT
 					&& KinkyDungeonCurrentDress != dialogue.outfit
 					&& !enemy.faction
 					&& !enemy.allied
+					&& !KDPlayerCantRespond()
 					&& KDFactionRelation("Player", KDGetFactionOriginal(enemy)) > -0.1
 					&& KDRandom() < dialogue.chance);
 			},
@@ -379,6 +389,7 @@ function KDBossTrigger(name: string, enemyName: string[]): KinkyDialogueTrigger 
 				&& !KinkyDungeonFlags.get("NoTalk")
 				&& !(KDGameData.SleepTurns > 0)
 				&& enemyName.includes(enemy.Enemy.name)
+				
 				&& !KinkyDungeonFlags.has("BossUnlocked")
 				&& !KinkyDungeonFlags.has("BossDialogue" + name));
 		},

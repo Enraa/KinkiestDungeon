@@ -124,7 +124,7 @@ let KDObjectClick: Record<string, (x: number, y: number) => boolean> = {
 				true)?.name;
 			if (KDUI_CurrentContainer) {
 				KDUI_ContainerBackScreen = KinkyDungeonDrawState;
-				KinkyDungeonDrawState = "Container";
+				KDGoToScreen("Container");
 				KinkyDungeonCurrentFilter = "All";
 				KDUI_Container_LastSelected = KDUI_CurrentContainer;
 				return true;
@@ -239,7 +239,7 @@ let KDTileInteract: Record<string, (x: number, y: number, dist?: number) => bool
 				true)?.name;
 			if (KDUI_CurrentContainer) {
 				KDUI_ContainerBackScreen = KinkyDungeonDrawState;
-				KinkyDungeonDrawState = "Container";
+				KDGoToScreen("Container");
 				KinkyDungeonCurrentFilter = "All";
 				KDUI_Container_LastSelected = KDUI_CurrentContainer;
 				return true;
@@ -377,7 +377,11 @@ function KinkyDungeonDrawDoor() {
 			DrawTextKD(TextGet("Kinky" + KinkyDungeonTargetTile.Lock + "Lock"), KDModalArea_x + 25, KDModalArea_y + 150, KDBaseWhite, "#333333");
 	} else {
 		KDModalArea = true;
-		DrawButtonVis(KDModalArea_x + 25, KDModalArea_y + 100, 250, 60, TextGet("KinkyDungeonCloseDoor"), KDBaseWhite);
+
+		DrawButtonKDEx("closedoor", () => {
+			KDSendInput("closeDoor", {targetTile: KinkyDungeonTargetTileLocation});
+		}, !!KinkyDungeonTargetTileLocation, 
+		KDModalArea_x + 25, KDModalArea_y + 100, 250, 60, TextGet("KinkyDungeonCloseDoor"), KDBaseWhite);
 	}
 }
 
@@ -557,12 +561,24 @@ function KinkyDungeonMakeGhostDecision() {
 
 function KinkyDungeonDrawCharger() {
 	KDModalArea = true;
-	//DrawTextKD(TextGet("KinkyDungeonCharger"), KDModalArea_x + 200, KDModalArea_y + 50, KDBaseWhite, KDTextGray2);
 	if (KinkyDungeonTargetTile && KinkyDungeonTargetTile.Light == KDChargerLight) {
-		DrawButtonVis(KDModalArea_x + 25, KDModalArea_y + 25, 400, 60, TextGet("KinkyDungeonChargerRemoveCrystal"), KDBaseWhite, "", "");
+		DrawButtonKDEx("chargerremove", () => {
+			KDSendInput("chargerInteract", {action: "remove", targetTile: KinkyDungeonTargetTileLocation});
+			return true;
+		}, !!KinkyDungeonTargetTile, KDModalArea_x + 25, KDModalArea_y + 25, 400, 60, TextGet("KinkyDungeonChargerRemoveCrystal"), KDBaseWhite, "", "");
 	} else if (KinkyDungeonTargetTile) {
-		DrawButtonVis(KDModalArea_x + 250, KDModalArea_y + 25, 200, 60, TextGet("KinkyDungeonChargerCharge"), KinkyDungeonInventoryGet("AncientPowerSourceSpent") ? KDBaseWhite : "#888888", "", "");
-		DrawButtonVis(KDModalArea_x + 25, KDModalArea_y + 25, 200, 60, TextGet("KinkyDungeonChargerPlaceCrystal"), KinkyDungeonInventoryGet("AncientPowerSource") ? KDBaseWhite : "#888888", "", "");
+		DrawButtonKDEx("chargerCharge", () => {
+			if (KDSendInput("chargerInteract", {action: "charge", targetTile: KinkyDungeonTargetTileLocation})) {
+				KinkyDungeonTargetTile = null;
+				KinkyDungeonTargetTileLocation = "";
+				KDModalArea = false;
+			}
+			return true;
+		}, true, KDModalArea_x + 250, KDModalArea_y + 25, 200, 60, TextGet("KinkyDungeonChargerCharge"), KinkyDungeonInventoryGet("AncientPowerSourceSpent") ? KDBaseWhite : "#888888", "", "");
+		DrawButtonKDEx("chargerPlace", () => {
+			KDSendInput("chargerInteract", {action: "place", targetTile: KinkyDungeonTargetTileLocation});
+			return true;
+		}, true, KDModalArea_x + 25, KDModalArea_y + 25, 200, 60, TextGet("KinkyDungeonChargerPlaceCrystal"), KinkyDungeonInventoryGet("AncientPowerSource") ? KDBaseWhite : "#888888", "", "");
 	} else {
 		KinkyDungeonTargetTile = null;
 		KinkyDungeonTargetTileLocation = "";
@@ -571,6 +587,13 @@ function KinkyDungeonDrawCharger() {
 
 
 }
+
+
+function KinkyDungeonHandleCharger() {
+
+	return false;
+}
+
 
 function KinkyDungeonDrawTablet() {
 	if (!KDModalArea) KDStatChoice = "";
@@ -609,29 +632,6 @@ let KDChargerColor = 0xffee83;
 let KDLeylineLightColor = 0x4477ff;
 let KDLeylineLight = 8;
 
-function KinkyDungeonHandleCharger() {
-	if (KinkyDungeonTargetTile && KinkyDungeonTargetTile.Light == KDChargerLight) {
-		if (MouseIn(KDModalArea_x + 25, KDModalArea_y + 25, 400, 60) && KinkyDungeonTargetTile) {
-			KDSendInput("chargerInteract", {action: "remove", targetTile: KinkyDungeonTargetTileLocation});
-			return true;
-		}
-	} else {
-		if (MouseIn(KDModalArea_x + 250, KDModalArea_y + 25, 200, 60)) {
-			if (KDSendInput("chargerInteract", {action: "charge", targetTile: KinkyDungeonTargetTileLocation})) {
-				KinkyDungeonTargetTile = null;
-				KinkyDungeonTargetTileLocation = "";
-				KDModalArea = false;
-			}
-			return true;
-		} else if (MouseIn(KDModalArea_x + 25, KDModalArea_y + 25, 200, 60) && KinkyDungeonTargetTile) {
-			KDSendInput("chargerInteract", {action: "place", targetTile: KinkyDungeonTargetTileLocation});
-			return true;
-		}
-	}
-
-	return false;
-}
-
 
 
 
@@ -647,12 +647,6 @@ function KDHandleModalArea() {
 		}
 	} else if (KDObjectHandle[KinkyDungeonTargetTile.Type]) {
 		return KDObjectHandle[KinkyDungeonTargetTile.Type]();
-	} else if (KinkyDungeonTargetTile.Type == "Door") {
-		if (MouseIn(KDModalArea_x + 25, KDModalArea_y + 25, 350, 60)) {
-			// Done, converted to input
-			KDSendInput("closeDoor", {targetTile: KinkyDungeonTargetTileLocation});
-			return true;
-		}
 	}
 	return false;
 }
@@ -909,7 +903,7 @@ function KDDrawOrb() {
 	DrawButtonKDEx("orbspellrandom", (_b) => {
 		let shrine = Object.keys(KinkyDungeonShrineBaseCosts)[Math.floor(KDRandom() * Object.keys(KinkyDungeonShrineBaseCosts).length)];
 		KDSendInput("orb", {shrine: shrine, Amount: 1, Rep: 0.9 * KinkyDungeonMultiplicativeStat(KDEntityBuffedStat(KinkyDungeonPlayerEntity, "DivinePrivilege")), x: KDOrbX, y: KDOrbY});
-		KinkyDungeonDrawState = "Game";
+		KDGoToScreen("Game");
 		KDResetAlternateInventoryRender();
 		return true;
 	}, true,  XX, yPad + KDModalArea_y + spacing * i - 27 + 30, 250, spacing - 8, TextGet("KinkyDungeonSurpriseMe"), KDBaseWhite, undefined, undefined, undefined, false, KDTextGray2);

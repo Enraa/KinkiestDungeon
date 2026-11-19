@@ -23,7 +23,7 @@ let KinkyDungeonSpellSpecials: Record<string, KDSpellSpecialCode> = {
 			if (!en.buffs || !en.buffs.Analyze) {
 				if (_miscast) return "Miscast";
 				if (!en.buffs) en.buffs = {};
-				KinkyDungeonApplyBuffToEntity(en, {
+				KDApplyBuffToEntity(en, {
 					id: "Analyze",
 					aura: KDBaseWhite,
 					type: "DamageAmp",
@@ -34,7 +34,7 @@ let KinkyDungeonSpellSpecials: Record<string, KDSpellSpecialCode> = {
 					maxCount: 3,
 					tags: ["defense", "damageTaken"],
 				});
-				KinkyDungeonApplyBuffToEntity(en, {id: "Analyze2", type: "Info", duration: 99999, power: 1.0, player: false, enemies: true, tags: ["info"]});
+				KDApplyBuffToEntity(en, {id: "Analyze2", type: "Info", duration: 99999, power: 1.0, player: false, enemies: true, tags: ["info"]});
 			} else return "Fail";
 		} else {
 			let tile = KinkyDungeonTilesGet(targetX + "," + targetY);
@@ -144,7 +144,7 @@ let KinkyDungeonSpellSpecials: Record<string, KDSpellSpecialCode> = {
 		if (rocks.length == 0) return "Fail";
 		for (let rock of rocks) {
 			if (_miscast) return "Miscast";
-			KinkyDungeonApplyBuffToEntity(rock, KDVolcanism);
+			KDApplyBuffToEntity(rock, KDVolcanism);
 			rock.hostile = 9999;
 		}
 		KinkyDungeonSendActionMessage(3, TextGet("KinkyDungeonSpellCast"+spell.name, KDGetGenericDialogueParams(_entity)), "#88AAFF", 2 + (spell.channel ? spell.channel - 1 : 0));
@@ -171,20 +171,20 @@ let KinkyDungeonSpellSpecials: Record<string, KDSpellSpecialCode> = {
 					if (_miscast) return "Miscast";
 					succeed = true;
 					// Disrobe enemies
-					KinkyDungeonApplyBuffToEntity(en, {
+					KDApplyBuffToEntity(en, {
 						id: "MoiraiDisrobe",
 						aura: "#ff88ff", auraSprite: "Disrobe",
 						duration: spell.time,
 						power: spell.power,
 						type: "charmDamageResist",
 					});
-					KinkyDungeonApplyBuffToEntity(en, {
+					KDApplyBuffToEntity(en, {
 						id: "MoiraiDisrobe2",
 						duration: spell.time,
 						power: 10,
 						type: "ArmorBreak",
 					});
-					KinkyDungeonApplyBuffToEntity(en, {
+					KDApplyBuffToEntity(en, {
 						id: "MoiraiDisrobe3",
 						duration: spell.time,
 						power: 10,
@@ -342,7 +342,7 @@ let KinkyDungeonSpellSpecials: Record<string, KDSpellSpecialCode> = {
 							)?.raw || null;
 
 							KDCurrentRestrainingTarget = en.id;
-							KinkyDungeonDrawState = "Bondage";
+							KDGoToScreen("Bondage");
 							// Select non wrists
 							UpdateRestraintBindingData = true;
 							KDNPCBindingSelectedSlot = null;
@@ -368,7 +368,7 @@ let KinkyDungeonSpellSpecials: Record<string, KDSpellSpecialCode> = {
 											KDBaseRed, 1, true);
 
 										KDCurrentRestrainingTarget = en.id;
-										KinkyDungeonDrawState = "Bondage";
+										KDGoToScreen("Bondage");
 										// Hover the new item
 										KDNPCBindingGeneric = false;
 										UpdateRestraintBindingData = true;
@@ -382,6 +382,8 @@ let KinkyDungeonSpellSpecials: Record<string, KDSpellSpecialCode> = {
 											faction: KinkyDungeonTargetingSpellItem.faction,
 											restraint: KinkyDungeonTargetingSpellItem.name,
 											restraintid: KinkyDungeonTargetingSpellItem.id,
+											data: KinkyDungeonTargetingSpellItem.data,
+											seed: KinkyDungeonTargetingSpellItem.seed,
 											lock: "",
 											variant: undefined,
 											events: KinkyDungeonTargetingSpellItem.events,
@@ -415,7 +417,7 @@ let KinkyDungeonSpellSpecials: Record<string, KDSpellSpecialCode> = {
 									KDBaseRed, 1, true);
 
 								KDCurrentRestrainingTarget = en.id;
-								KinkyDungeonDrawState = "Bondage";
+								KDGoToScreen("Bondage");
 								KinkyDungeonSetFlag("quickBind", 1);
 								// Hover the new item
 								KDNPCBindingGeneric = false;
@@ -433,7 +435,7 @@ let KinkyDungeonSpellSpecials: Record<string, KDSpellSpecialCode> = {
 					} else {
 
 						KDCurrentRestrainingTarget = en.id;
-						KinkyDungeonDrawState = "Bondage";
+						KDGoToScreen("Bondage");
 
 						// Select non wrists
 						UpdateRestraintBindingData = true;
@@ -595,20 +597,27 @@ let KinkyDungeonSpellSpecials: Record<string, KDSpellSpecialCode> = {
 			KinkyDungeonSendTextMessage(8, TextGet("KDCommandWordFail_NoEnemy", KDGetGenericDialogueParams(_entity, en)), KDBaseRed, 1, true);
 			return "Fail";
 		} else if (targetX == KinkyDungeonPlayerEntity.x && targetY == KinkyDungeonPlayerEntity.y) {
-			if (KinkyDungeonPlayerGetRestraintsWithLocks(KDMagicLocks).length > 0) {
-				if (spell.aoe > 0) {
-					for (let r of KinkyDungeonPlayerGetRestraintsWithLocks(KDMagicLocks, true)) {
-						KinkyDungeonLock(r, "", false, false, false, false);
-					}
-					KinkyDungeonSendTextMessage(4, TextGet("KinkyDungeonPurpleLockRemove"), "#e7cf1a", 2);
-					KDChangeMana(spell.name, "spell", "cast", -KinkyDungeonGetManaCost(spell));
-					if (KDSoundEnabled()) AudioPlayInstantSoundKD(KinkyDungeonRootDirectory + "Audio/Magic.ogg");
-				} else {
+			let unlocking = false;
+			if (spell.aoe > 0) {
+				for (let r of KinkyDungeonPlayerGetRestraintsWithLocks(KDMagicLocks, true)) {
+					KinkyDungeonLock(r, "", false, false, false, false);
+					unlocking = true;
+				}
+				KinkyDungeonSendTextMessage(4, TextGet("KinkyDungeonPurpleLockRemove"), "#e7cf1a", 2);
+				KDChangeMana(spell.name, "spell", "cast", -KinkyDungeonGetManaCost(spell));
+				if (KDSoundEnabled()) AudioPlayInstantSoundKD(KinkyDungeonRootDirectory + "Audio/Magic.ogg");
+			} else {
+				let items = KinkyDungeonPlayerGetRestraintsWithLocks(KDMagicLocks, true);
+				items = items.filter(i => KDIsItemAccessible(i));
+				if (items.length > 0) {
 					KDGameData.InventoryAction = "RemoveMagicLock";
 					KDShowInventory(null);
 					KinkyDungeonCurrentFilter = Restraint;
 					KDGameData.InventoryActionManaCost = KinkyDungeonGetManaCost(spell);
+					unlocking = true;
 				}
+			}
+			if (unlocking) {
 				return "Cast";
 			}
 			KinkyDungeonSendTextMessage(8, TextGet("KDCommandWordFail_NoLocks"), KDBaseRed, 1, true);
@@ -631,7 +640,7 @@ let KinkyDungeonSpellSpecials: Record<string, KDSpellSpecialCode> = {
 		} else if (!KDEnemyHasFlag(entity, "winding2")) {
 			if (_miscast) return "Miscast";
 			KinkyDungeonSetEnemyFlag(entity, "windup", 9);
-			KinkyDungeonApplyBuffToEntity(entity, {id: "ExtraSight", type: "Vision", duration:9, power: 7});
+			KDApplyBuffToEntity(entity, {id: "ExtraSight", type: "Vision", duration:9, power: 7});
 		}
 		if (_miscast) return "Miscast";
 		KinkyDungeonPlaySound(spell.sfx, entity);
@@ -643,7 +652,7 @@ let KinkyDungeonSpellSpecials: Record<string, KDSpellSpecialCode> = {
 		let en = KinkyDungeonEntityAt(targetX, targetY);
 		if (en && !en.player && en.boundLevel > 0) {
 			if (_miscast) return "Miscast";
-			KinkyDungeonApplyBuffToEntity(en, {
+			KDApplyBuffToEntity(en, {
 				id: "Lockdown", aura: "#a96ef5", type: "MinBoundLevel", duration: 9000, power: Math.min(en.Enemy.maxhp + 0.01, en.boundLevel), maxCount: 1, tags: ["lock", "debuff", "commandword", "CM1"]
 			});
 			KinkyDungeonCastSpell(targetX, targetY, KinkyDungeonFindSpell("EffectEnemyLock1", true), undefined, undefined, undefined);
@@ -652,7 +661,7 @@ let KinkyDungeonSpellSpecials: Record<string, KDSpellSpecialCode> = {
 			if (KDSoundEnabled()) AudioPlayInstantSoundKD(KinkyDungeonRootDirectory + "Audio/Magic.ogg");
 			return "Cast";
 		} else if (en && en.player) {
-			let lockable = KinkyDungeonPlayerGetLockableRestraints();
+			let lockable = KDLockableRestraints();
 			if (lockable.length > 0) {
 				if (_miscast) return "Miscast";
 				for (let item of lockable) {
@@ -1164,7 +1173,7 @@ let KinkyDungeonSpellSpecials: Record<string, KDSpellSpecialCode> = {
 				KinkyDungeonExpireBuff(entity, "Aim2");
 			} else {
 				// Do nothing. Aim buff handles the subroutine just fine
-				KinkyDungeonApplyBuffToEntity(entity, KDAim, {
+				KDApplyBuffToEntity(entity, KDAim, {
 					data: {
 						x: aimBuff.data.x,
 						y: aimBuff.data.y,
@@ -1175,7 +1184,7 @@ let KinkyDungeonSpellSpecials: Record<string, KDSpellSpecialCode> = {
 			return "Cast";
 		} else {
 			// Start aiming
-			KinkyDungeonApplyBuffToEntity(entity, KDAim, {
+			KDApplyBuffToEntity(entity, KDAim, {
 				data: {
 					x: entity.x,
 					y: entity.y,
@@ -1361,7 +1370,7 @@ let KinkyDungeonSpellSpecials: Record<string, KDSpellSpecialCode> = {
 
 			KDRescueSlime(en, entity);
 
-			KinkyDungeonApplyBuffToEntity(en, KDGlueResist, {duration: 30});
+			KDApplyBuffToEntity(en, KDGlueResist, {duration: 30});
 
 			KinkyDungeonSendActionMessage(3, TextGet("KDUniversalSolventSucceedEnemy")
 				.replace("ENMY", KDGenEnemyName(en)),
@@ -1413,7 +1422,7 @@ let KinkyDungeonSpellSpecials: Record<string, KDSpellSpecialCode> = {
 			}
 
 			KinkyDungeonRemoveBuffsWithTag(en, ["encased", "slimed"]);
-			KinkyDungeonApplyBuffToEntity(en, KDGlueResist, {duration: 30});
+			KDApplyBuffToEntity(en, KDGlueResist, {duration: 30});
 
 			KinkyDungeonSendActionMessage(3, TextGet("KDUniversalSolventSucceedSelf")
 				.KDReplaceOrAddDmg( dmg.string),
@@ -1574,7 +1583,7 @@ let KinkyDungeonSpellSpecials: Record<string, KDSpellSpecialCode> = {
 			KinkyDungeonSendActionMessage(3, TextGet("KinkyDungeonSpellCast"+spell.name, KDGetGenericDialogueParams(entity)), "#88AAFF", 2 + (spell.channel ? spell.channel - 1 : 0));
 			for (let en of enList) {
 				if (en.buffs && KinkyDungeonGetBuffedStat(en.buffs, "SlimeProgress")) {
-					KinkyDungeonApplyBuffToEntity(en, KDEncased);
+					KDApplyBuffToEntity(en, KDEncased);
 					KinkyDungeonDamageEnemy(en, {
 						type: spell.damage,
 						damage: spell.power * count,
@@ -1660,8 +1669,8 @@ let KinkyDungeonSpellSpecials: Record<string, KDSpellSpecialCode> = {
 			for (let en of enList) {
 				if (en.Enemy.tags.construct && (!en.buffs || !en.buffs.Disenchant1)) {
 					if (_miscast) return "Miscast";
-					KinkyDungeonApplyBuffToEntity(en, KDDisenchant1);
-					KinkyDungeonApplyBuffToEntity(en, KDDisenchant2);
+					KDApplyBuffToEntity(en, KDDisenchant1);
+					KDApplyBuffToEntity(en, KDDisenchant2);
 					KinkyDungeonDamageEnemy(en, {
 						type: "cold",
 						damage: spell.power,
@@ -1675,7 +1684,7 @@ let KinkyDungeonSpellSpecials: Record<string, KDSpellSpecialCode> = {
 
 		if (AOECondition(tX, tY, KinkyDungeonPlayerEntity.x, KinkyDungeonPlayerEntity.y, spell.aoe, KinkyDungeonTargetingSpell.aoetype || "")) {
 			if (_miscast) return "Miscast";
-			KinkyDungeonApplyBuffToEntity(KinkyDungeonPlayerEntity, KDDisenchantSelf);
+			KDApplyBuffToEntity(KinkyDungeonPlayerEntity, KDDisenchantSelf);
 			cast = true;
 		}
 		if (cast) {
@@ -1925,7 +1934,7 @@ let KinkyDungeonSpellSpecials: Record<string, KDSpellSpecialCode> = {
 				KinkyDungeonRemoveBuffsWithTag(en, ["encased", "slimed"]);
 				KDRescueSlime(en, _entity);
 
-				KinkyDungeonApplyBuffToEntity(en, KDGlueResist, {duration: 10});
+				KDApplyBuffToEntity(en, KDGlueResist, {duration: 10});
 			}
 		}
 
@@ -1992,7 +2001,7 @@ let KinkyDungeonSpellSpecials: Record<string, KDSpellSpecialCode> = {
 				sprite: "Particles/PinkGlow.png",
 			});
 			KinkyDungeonPlaySound(KinkyDungeonRootDirectory + "Audio/PowerMagic.ogg");
-			KinkyDungeonApplyBuffToEntity(KinkyDungeonPlayerEntity, {
+			KDApplyBuffToEntity(KinkyDungeonPlayerEntity, {
 				id: "DistractionCast",
 				type: "MiscastChance",
 				power: -1,
@@ -2215,7 +2224,7 @@ let KinkyDungeonSpellSpecials: Record<string, KDSpellSpecialCode> = {
 		let en = KinkyDungeonEnemyAt(targetX, targetY);
 		if (en && KDAllied(en)) {
 			if (en.buffs?.AllySelect) KinkyDungeonExpireBuff(en, "AllySelect");
-			else KinkyDungeonApplyBuffToEntity(en, {
+			else KDApplyBuffToEntity(en, {
 				id: "AllySelect",
 				aura: KDBaseWhite, auraSprite: "Select",
 				duration: 9999, infinite: true,
@@ -2231,7 +2240,7 @@ let KinkyDungeonSpellSpecials: Record<string, KDSpellSpecialCode> = {
 		let succeed = false;
 		for (let en of list)
 			if (en && KDAllied(en)) {
-				KinkyDungeonApplyBuffToEntity(en, {
+				KDApplyBuffToEntity(en, {
 					id: "AllySelect",
 					aura: KDBaseWhite, auraSprite: "Select",
 					duration: 9999, infinite: true,
@@ -2265,7 +2274,14 @@ let KinkyDungeonSpellSpecials: Record<string, KDSpellSpecialCode> = {
 			if (en && en.buffs?.AllySelect) {
 				en.gx = targetX;
 				en.gy = targetY;
-				KinkyDungeonSetEnemyFlag(en, "NoFollow", 9000);
+				if (en.flags?.NoFollow == -1) {
+					en.orderX = targetX;
+					en.orderY = targetY;
+				} else {
+					KinkyDungeonSetEnemyFlag(en, "NoFollow", 100);
+					en.orderX = targetX;
+					en.orderY = targetY;
+				}
 				succeed = true;
 			}
 			
@@ -2367,7 +2383,7 @@ let KinkyDungeonSpellSpecials: Record<string, KDSpellSpecialCode> = {
 			if (_miscast) return "Miscast";
 			
 			KinkyDungeonSendActionMessage(3, TextGet("KinkyDungeonSpellCast"+spell.name, KDGetGenericDialogueParams(_entity, en)), "#88AAFF", 2 + (spell.channel ? spell.channel - 1 : 0));
-			KinkyDungeonLaunchAttack(en, 1);
+			KinkyDungeonLaunchAttack(en);
 			return "Cast";
 		} else return "Fail";
 	},
@@ -2378,7 +2394,7 @@ let KinkyDungeonSpellSpecials: Record<string, KDSpellSpecialCode> = {
 			if (_miscast) return "Miscast";
 			
 			KinkyDungeonSendActionMessage(3, TextGet("KinkyDungeonSpellCast"+spell.name, KDGetGenericDialogueParams(_entity, en)), "#88AAFF", 2 + (spell.channel ? spell.channel - 1 : 0));
-			KinkyDungeonLaunchAttack(en, 1);
+			KinkyDungeonLaunchAttack(en);
 			return "Cast";
 		} else {
 			if (_miscast) return "Miscast";
@@ -2578,8 +2594,8 @@ function KDRescueSlime(en: entity, rescuer: entity) {
 			en.Enemy = JSON.parse(JSON.stringify(enemyType));
 		}
 		en.hp = Math.min(en.Enemy.maxhp, en.hp);
+		KDResetAggro(en);
 		en.faction = KDGetFaction(rescuer);
-		en.hostile = 0;
 	}
 }
 

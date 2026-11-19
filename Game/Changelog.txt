@@ -76,6 +76,115 @@ Must do
 - Proper stripping
 - species perks
 
+5.5.14
+- Added an outfit for the warden
+
+5.5.13
+- Reduced VRAM usage by a lot (50% for desktop, 75% for mobile)
+- Can now push barrels, etc
+- Fixed hold still/defensive not really working
+- Made enemies escape properly in the summit instead of trying to leash you
+- Can now dispel puppet strings by walking into them
+- Shopkeeper now uses They/Them pronouns
+- New 'avoidant' stance for allies
+- New 'passive' stance for allies
+- Allied puppetmasters now have a limit on how many puppets they can summon
+- Collection list reworked to use smoother scrolling list
+- Fixed potential epilepsy trigger due to binding bars in the collection
+- Fixed the positive/negative opinion filters in the collection not being accurate
+- Inventory filters now mutually exclusive
+- Moved keys, lockpicks, etc to the status bars area
+- Stairs now only activate when manually waited on
+- Like the Wind now activates at 75% stamina instead of 95%, cost increased to 5
+- Cyber Doll Storage and Doll Shoppe starts now share a tag, cant start with both (and crash)
+- Save on entering the end screen (to avoid having to re-fight the dollmaker)
+- Fixed a bug where all NPCs were counted as artificial
+- Fixed a bug that prevented the doll body from being applied when transformed
+- NPCs in summit now get set to non-hostile when summoned
+- Hypno buttons are clickable faster
+
+
+5.5.12
+- Fixed some leashing behavior issues
+- Allies no longer follow you without you telling them to follow you
+- Yet more graphics optimizations
+- Added customizable pronouns to player and NPC
+
+5.5.11
+- Fixed some crash that occurred when swapping characters repeatedly in collection
+- Fixed various minor bugs
+- Puppetmasters now stay globally pissed off for 2 floors after dealing 50 damage, leading to the doll path in shoppe
+
+5.5.10
+- Some under the hood changes to sound handling. All SFX is now preloaded to memory (about 17mb)
+- Fixed armor not having remove option in Inventory menu
+
+5.5.9
+- Fixes to dynamic loading
+- Fixed a lot of missing pronoun tags
+- Incremented version number
+
+5.5.8
+- Added dynamic loading- this should reduce average memory requirements
+- Added toggle to fully preload all assets (only use on computers with a lot of memory)
+- Dynamic loading is only available offline due to Itch.io web limitations
+
+5.5.7
+- Fixed "I am a doll" dialogue not spawning a puppeteer or dressmaker to take you to the shoppe
+- Refactoring + added arrows to combo boxes
+- Added model resolution (lower this if you are having issues with crashes)
+- Added model supersampling (enable if model is fuzzy but you want it to look better at a slight vram hit)
+- Fixed a major vram leak
+
+5.5.6
+- Rendering optimizations
+- Made the lore part of the journal use nicer scrollable lists
+- Fixed bug with mittens not being layerable even with the layering perk
+- Fixed some display errors
+- Added spiral vfx for some mechanics (can be toggled off in settings)
+
+5.5.5
+- Significant changes to map generation
+- Can now remodel furniture in summit (thank you fjarnskaggl)
+- Fixed enemy AI not being assigned correctly to forced spawns on map tiles
+- Improved patrolling functionality of non-guarding enemies
+- Fixed a bug where mastery perks would cause the training xp bar to overflow
+- Fixed shoppe start perk (thank you fjarnskaggl)
+- Summit latex pools fixed (thank you fjarnskaggl)
+
+5.5.4
+- Resin is easier to crack
+
+5.5.3
+- Added Leather catsuit (thanks fjarnskaggl for editing work)
+- Added Gothic Bra/Panties
+- Added Buttplug.io and Xtoys support
+- Added perk "Layers Under Layers" which enables the excessive restraint stacking behavior you all love
+- Added 'Default to RGB Color Picker' option to Character options
+- Added Corset Training
+- Added Gag Training (weakened Smooth Talker's effect to compensate for the synergy)
+- Color picker type now defaults to RGB
+- School of Projection renamed to School of Enchantment
+- Added 'Resist Charm' spell which suppresses a lot of curse effects and gives charm/psychic resist
+- Reworked a lot of faction color palettes
+- Added more depth to 'toying with you' behavior
+- Fixed bugs relating to infinite jailing
+- Made tease attacks somewhat more common
+- Verbal tease attacks can now be said from a distance
+- Refusing bondage offer no longer causes all enemies nearby to become hostile
+- Added perk shrine more which offers bondage-only shrines at times
+- New mildly infuriating sound/vibe pattern for nipple vibes
+- Shrine bondage now applies "Contract" locks which cant be removed by the shopkeeper
+- Reduced cost of removing warden gear to 6 spell points
+- Warden cuff links are significantly easier to remove
+- Added shopkeeper option to remove divine locks
+- Added Shopkeeper Favors earned each time you get a portal
+- Can now attack ambushers (e.g. from traps) without incurring the wrath of local faction
+- Leash training now grants flat XP based on current training level
+- Angels now only reduce rep when you receive the help rather than when the dialogue starts
+- Being denied for a long time now only gives a bonus to minimum orgasm chance if you have willpower
+- Fixed a bug where mastery perks never actually worked
+
 5.5.2
 - Added WebAudio support for better sound quality
 - Added sound muting effect with vibrators

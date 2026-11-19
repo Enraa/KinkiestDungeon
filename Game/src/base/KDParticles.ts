@@ -117,7 +117,7 @@ function KDAddParticleEmitter(x: number, y: number, img: string, imgemitted: str
 		}
 
 		if (emitterinfo.scale != 1 || emitterinfo.scale_delta) {
-			if (emitterinfo) sprite.width = emitterinfo.width * emitterinfo.scale;
+			if (emitterinfo.width) sprite.width = emitterinfo.width * emitterinfo.scale;
 			else sprite.scale.x = emitterinfo.scale;
 			if (emitterinfo.height) sprite.height = emitterinfo.height * emitterinfo.scale;
 			else sprite.scale.y = emitterinfo.scale;
@@ -226,7 +226,7 @@ function KDUpdateParticles(main_delta: number) {
 		if (emitter.time >= 0) sprite.visible = true;
 		if (emitter.vy) {sprite.position.y += emitter.vy * delta;}
 		if (emitter.vx) {sprite.position.x += emitter.vx * delta;}
-		if (emitter.angle_delta) {sprite.rotation += info.angle_delta * delta;}
+		if (emitter.angle_delta) {sprite.rotation += emitter.angle_delta * delta;}
 
 		if (emitter.sin_x && emitter.sin_period && sprite.visible) {sprite.position.x += emitter.sin_x * Math.sin(emitter.phase + emitter.sin_period * emitter.time / emitter.lifetime) * delta;}
 		if (emitter.sin_y && emitter.sin_period && sprite.visible) {sprite.position.y += emitter.sin_y * Math.sin(emitter.phase + emitter.sin_period * emitter.time / emitter.lifetime) * delta;}
@@ -302,7 +302,7 @@ function KDDrawVibeParticles(density: number) {
 	let arousalRate = 100 / density;
 	if (StandalonePatched) arousalRate *= 2;
 	if (KinkyDungeonVibeLevel > 0 && CommonTime() > lastVibeParticle + 0.03 * arousalRate * (3/(3 + KinkyDungeonVibeLevel))) {
-		KDCreateVibeParticle();
+		KDCreateVibeParticle(KDMAINPORTRAITID);
 
 		lastVibeParticle = CommonTime();
 	}
@@ -333,13 +333,15 @@ function KDAddShockwave(x: number, y: number, size: number, spr: string = `Parti
 		undefined, data);
 }
 
-function KDSendGagParticles(entity: entity): void {
+function KDSendGagParticles(entity: entity, id: string): void {
 	if (!KDToggles.GagParticles) return;
 	if (entity?.player) {
 		// Player
 
 		let lifetime = 2000;
-		let pos = GetHardpointLoc(KinkyDungeonPlayer, KDPlayerPos().x, KDPlayerPos().y, KDCharSize, "Mouth", KDToggles.FlipPlayer);
+		let pos = GetHardpointLoc(KinkyDungeonPlayer, KDPlayerPos().x, KDPlayerPos().y, 
+			KDCharSize, "Mouth", KDToggles.FlipPlayer, id);
+		if (!pos) return;
 		let x = pos.x;
 		let y = pos.y;
 
@@ -431,10 +433,11 @@ function KDSendGagParticles(entity: entity): void {
 /**
  *
  */
-function KDCreateVibeParticle() {
+function KDCreateVibeParticle(id: string) {
 	let lifetime = 500 + Math.random() * 250;
 	// Throw out in favor of new system
-	let pos = GetHardpointLoc(KinkyDungeonPlayer, KDPlayerPos().x, KDPlayerPos().y, KDCharSize, "Front", KDToggles.FlipPlayer);
+	let pos = GetHardpointLoc(KinkyDungeonPlayer, KDPlayerPos().x, KDPlayerPos().y, 
+	KDCharSize, "Front", KDToggles.FlipPlayer, id);
 	let x = pos.x;
 	let y = pos.y;
 
@@ -452,8 +455,8 @@ function KDCreateVibeParticle() {
 		else if (breast && (locations.length == 1 || Math.random() < 0.5)) {
 			if (Math.random() > 0.5) forceSide = 1;
 			else forceSide = -1;
-			let pos = forceSide > 0 ? GetHardpointLoc(KinkyDungeonPlayer, KDPlayerPos().x, KDPlayerPos().y, KDCharSize, "BreastRight", KDToggles.FlipPlayer)
-				: GetHardpointLoc(KinkyDungeonPlayer, KDPlayerPos().x, KDPlayerPos().y, KDCharSize, "BreastLeft", KDToggles.FlipPlayer);
+			let pos = forceSide > 0 ? GetHardpointLoc(KinkyDungeonPlayer, KDPlayerPos().x, KDPlayerPos().y, KDCharSize, "BreastRight", KDToggles.FlipPlayer, id)
+				: GetHardpointLoc(KinkyDungeonPlayer, KDPlayerPos().x, KDPlayerPos().y, KDCharSize, "BreastLeft", KDToggles.FlipPlayer, id);
 			x = pos.x;
 			y = pos.y;
 			vx = ((Math.random() > 0.5) ? -1 : 1) * (0.05 + Math.random()*0.12);

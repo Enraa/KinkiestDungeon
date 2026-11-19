@@ -18,7 +18,8 @@ interface KDOutfitMetadata {
 	customColors: Record<string, Record<string, LayerFilter>>,
 }
 
-interface FactionFilterDef {color: string, override?: boolean, desaturate?: boolean};
+interface FactionFilterDef {color: string, override?: boolean, desaturate?: boolean, overridehsl?: boolean, overridergb?: boolean};
+
 
 /** Kinky Dungeon Typedefs*/
 interface item extends NamedAndTyped {
@@ -184,10 +185,9 @@ interface KDRestraintPropsBase {
 	 * override is whether the faction color overrides the filter. If true it will replace the filter in the model. If false it will apply it over the model's filter. Currently unused
 	*/
 	factionFilters?: Record<string, FactionFilterDef>,
-	/** This item is unaffected by shrines */
-	noShrine?:boolean,
 	/** This item is beneficial and player wont try to struggle from it */
 	good?: boolean,
+	blockedBy?: string[],
 
 	inventory?: boolean,
 	power?: number,
@@ -195,6 +195,8 @@ interface KDRestraintPropsBase {
 	minLevel?: number,
 	allFloors?: boolean,
 	cloneTag?: string,
+	cloneLock?: string,
+	cloneLockUpgrade?: string,
 
 	escapeChance?: KDEscapeChanceList,
 
@@ -349,14 +351,10 @@ interface KDRestraintPropsBase {
 	alwaysStruggleable?: boolean,
 	/** Model to use in standalone. Defaults to Asset */
 	Model?: string,
-	Asset?: string,
 	/** Sell price of the item */
 	value?: number,
-	/** Used for when the visual asset in BC is different from the actual group of the item*/
-	AssetGroup?: string,
 	/** Dont render item if has the tags */
 	hideTags?: string[],
-	Color?: string[] | string,
 	/** Maximum level, wont be used at this or higher. Inclusive. */
 	maxLevel?: number,
 	/** Determines the floors the restraint can appear on */
@@ -442,6 +440,12 @@ interface KDRestraintPropsBase {
 		Destroy?: string,
 	}
 
+
+	/** Restraints with this are unremovable via shrine */
+	noShrine?: boolean,
+	/** Restraints with this are unremovable via shopkeeper */
+	noShop?: boolean,
+
 	nippleclamp?: boolean,
 	nipplevibe?: boolean,
 	/** Remove sound */
@@ -456,6 +460,22 @@ interface KDRestraintPropsBase {
 	showInQuickInv?: boolean,
 	/** The item is a chastity belt */
 	chastity?: boolean,
+	/** the item has a corset strictness */
+	corset?: number,
+	
+	deaf?: number,
+
+	/** Having a tool does not help you */
+	noTool?: boolean
+	/** Being flexible does not help you */
+	noFlex?: boolean
+
+	/** Descriptor for tightness, e.g. Secure, Thick */
+	tightType?: string,
+
+	/** multiplies cut depth AFTER calculation */
+	cutVulnerability?: number,
+
 	/** The item is a chastity bra */
 	chastitybra?: boolean,
 	/** The item is a piercing */
@@ -516,8 +536,6 @@ interface KDRestraintPropsBase {
 	addPoseIfTopLevel?: string[],
 	forbidPose?: string[],
 	removePose?: string[],
-	OverridePriority?: number,
-	Modules?: number[],
 	/** When added to the inventory, is added as a different item instead. Good for multiple stages of the same item, like cuffs */
 	inventoryAs?: string,
 	/** When added to the inventory by self, is added as a different item instead. Good for multiple stages of the same item, like cuffs */
@@ -592,8 +610,6 @@ interface KDRestraintPropsBase {
 	enchanted?: boolean,
 	/** Whether or not this is special in some way*/
 	special?: boolean,
-	/** Faction color index */
-	factionColor?: number[][],
 
 	/** Determines if it gets hidden by the 'Hide Armor' option */
 	armor?: boolean,
@@ -621,15 +637,6 @@ interface restraint extends KDRestraintProps {
 	weight: number,
 	minLevel: number,
 
-	deaf?: number,
-
-	Color?: string[] | string,
-
-	/** Descriptor for tightness, e.g. Secure, Thick */
-	tightType?: string,
-
-	/** multiplies cut depth AFTER calculation */
-	cutVulnerability?: number,
 
 	escapeChance: KDEscapeChanceList,
 
@@ -815,12 +822,8 @@ interface overrideDisplayItem {
 	Group: string,
 	/** Standalone model */
 	Model?: string,
-	/** Color */
-	Color: string[]|string,
 	/** Filters */
 	Filters?: Record<string, LayerFilter>,
-	/** Faction color index */
-	factionColor?: number[][],
 	/** Faction filter index */
 	factionFilters?: Record<string, {color: string, override: boolean}>,
 	/** Property for BC compat */
@@ -872,6 +875,8 @@ interface enemy extends KDHasTags {
 	intro?: string,
 
 	nameList?: string,
+	noName?: boolean,
+	hideName?: boolean,
 
 	
 	/** Pronoun list */
@@ -972,6 +977,10 @@ interface enemy extends KDHasTags {
 		moveSoundName?: string,
 		/* name of moving sound */
 		alertSoundName?: string,
+		/* name of cast sound */
+		castSoundName?: string,
+		/* name of attack sound */
+		attackSoundName?: string,
 	},
 
 	/** Which subroutine to select for persistent script */
@@ -1501,6 +1510,8 @@ interface enemy extends KDHasTags {
 	noSpellDuringAttack?: boolean,
 	/** Base faction of this enemy, overridden by the entity faction */
 	faction?: string,
+	/** negates the friendlyfire tag on spells */
+	alwaysNoFF?: boolean,
 	/** Can rescue with the following */
 	rescueTo?: {
 		Unlock?: string,
@@ -1589,6 +1600,8 @@ interface weapon extends damageInfo, NamedAndTyped {
 	/** Determines if the weapon is a gun/staff type (does damage regardless of binding)
 	 * or a whack type that needs force to be effective*/
 	noDamagePenalty?: boolean,
+	/** Adds a nostack tag to the description */
+	nostack?: string,
 	cutBonus?: number;
 	playSelfBonus?: number;
 	playSelfMsg?: string;
@@ -1623,12 +1636,15 @@ interface KDWeaponSpecial {
     selfCast?: boolean;
     requiresEnergy?: boolean;
     energyCost?: number;
+    staminaCost?: number;
+    minStamina?: number;
     range?: number;
 }
 
 interface KinkyDungeonEvent {
 	sprite?: string,
 
+	buffid?: string,
 
 
 	cloneTags?: string[],
@@ -1692,6 +1708,9 @@ interface KinkyDungeonEvent {
 	sfx?: string;
 	vol?: number;
 	power?: number;
+	miscast?: number,
+	accuracy?: number,
+	stat?: string,
 	keepLock?: boolean,
 	distractEff?: number;
 	desireMult?: number;
@@ -2040,6 +2059,8 @@ interface entity {
 	path?: {x: number, y: number}[],
 	gx?: number,
 	gy?: number,
+	orderX?: number,
+	orderY?: number,
 	/** will not try to path thru this entity */
 	gx_ent?: number,
 	gy_ent?: number,
@@ -2080,6 +2101,7 @@ interface entity {
 	playWithPlayerCD?: number,
 
 	IntentAction?: string,
+	recentHitsWhileLeash?: number,
 	IntentLeashPoint?: {x: number, y: number, type: string, radius: number, entrance?: boolean},
 	IntentLeashPointType?: string,
 	intentDialogue?: string,
@@ -2214,6 +2236,8 @@ type KDPerk = {
 	outfit?: string,
 	require?: string,
 	costGroup?: string,
+	/** Minimum cost after factoring costgroup */
+	costMin?: number,
 	startPriority?: number,
 	requireArousal?: boolean,
 }
@@ -2705,7 +2729,17 @@ interface KDQuest {
 };
 
 interface KDPoint {x: number, y: number}
-interface KDJailPoint extends KDPoint {type: string, entrance?: boolean, radius: number, requireLeash?: boolean, requireFurniture?: boolean, direction?:{x: number, y: number}, restraint?:string, restrainttags?:string[]}
+interface KDJailPoint extends KDPoint {
+	type: string,
+	door?: KDPoint,
+	outside?: KDPoint,
+	inside?: KDPoint,
+	entrance?: boolean,
+	radius: number,
+	requireLeash?: boolean,
+	requireFurniture?: boolean,
+	direction?:{x: number, y: number},
+	restraint?:string, restrainttags?:string[]}
 
 interface KinkyDialogue {
 	image?: string,
@@ -2857,6 +2891,7 @@ interface KDStruggleData {
 	struggleType: string,
 	struggleGroup: string,
 	escapeChance: number,
+	blocked?: boolean,
 	cutBonus: number,
 	origEscapeChance: number,
 	/** Gets set to a low value when escapeChance would be clipped to 0, helping player understand how helpless */
@@ -3139,6 +3174,8 @@ interface KDBullet {
 	time?: number,
 	lifetime?: number,
 	reflected?: boolean,
+	/** Already warned once for autoapthing */
+	warned?: boolean,
 	y: number,
 	x: number,
 	vx: number,
@@ -3429,6 +3466,8 @@ type AIType = {
 	resetguardposition: (enemy: entity, player: entity, aidata: KDAIData) => boolean,
 	/** Whether enemy attacks */
 	attack: (enemy: entity, player: entity, aidata: KDAIData) => boolean,
+	/** Whether enemy teasees */
+	tease: (enemy: entity, player: entity, aidata: KDAIData) => boolean,
 	/** whether enemy casts spells */
 	spell: (enemy: entity, player: entity, aidata: KDAIData) => boolean,
 	/** This function executes before wander location changes. Return True to override wander behavior */
@@ -3476,6 +3515,8 @@ interface KDAIData extends KDAITriggerData {
 
 	/** Whether to do a defeat or not */
 	defeat?: boolean,
+	/** Defeat skips KDRunRegularJailDefeatAttempt (no jail room search / exit fallback), e.g. capture to a dropoff */
+	forceRegularDefeat?: boolean,
 	/** Whether this enemy is idle or not. Gets set to true by default and false if the enemy does ANYTHING */
 	idle?: boolean,
 	/** Indicates that the enemy has moved, therefore cant attack or cast unless it has the necessary properties */
@@ -3553,6 +3594,7 @@ interface KDAIData extends KDAITriggerData {
 	moveTowardPlayer?: boolean,
 	/** Enemy will wait a bit before forcing leash again */
 	SlowLeash?: boolean,
+	orderAnchor?: KDOrderAnchor,
 
 	/** The enemy plans to leash the player,
 	 * important to declare b/c otherwise enemy can close cages, etc during play*/
@@ -3621,13 +3663,23 @@ interface KDEventTriggerDataPoint {point: KDPoint, radius: number, target: entit
 type EnemyEvent = {
 	/** Extremely important for leash events */
 	overrideIgnore?: boolean,
+	/** don't let go of leashes when idle */
+	holdleash?: boolean,
+	allowStairs?: boolean,
 	forceattack?: boolean,
 	aggressive?: boolean,
 	nonaggressive?: boolean,
+	ignoreNonPlayer?: boolean,
 	play?: boolean,
 	noplay?: boolean,
 	/** This event wont get cleared by mass resets, like when you are deposited into a cage */
 	noMassReset?: boolean,
+	/** Enables the leashing mechanic */
+	isCapturing?: boolean,
+	/** ally orders (holdstill, defensive, etc) are ignored */
+	ignoreAllyOrders?: boolean,
+	/** Determines if the enemy will tease you */
+	decideTease?: (enemy: entity, target: entity, AIData: KDEventDataBoolean, allied: boolean, hostile: boolean, aggressive: boolean) => boolean,
 	/** Determines if the enemy will attack you */
 	decideAttack?: (enemy: entity, target: entity, AIData: KDEventDataBoolean, allied: boolean, hostile: boolean, aggressive: boolean) => boolean,
 	/** Determines if the enemy will cast spells */
@@ -3635,7 +3687,7 @@ type EnemyEvent = {
 	/** Determines weight */
 	weight: (enemy: entity, AIData: KDEventDataBoolean, allied: boolean, hostile: boolean, aggressive: boolean) => number,
 	/** Run when triggered */
-	trigger: (enemy: entity, AIData: KDEventDataBoolean) => void,
+	trigger: (enemy: entity, AIData: KDEventDataBoolean) => boolean | void,
 	/** Run when leashes to the leash point */
 	arrive?: (enemy: entity, AIData: KDEventDataBoolean) => boolean,
 	/** Run each turn at the end */
@@ -3657,6 +3709,10 @@ type KDLockType = {
 
 	consume_key: boolean;
 	lockmult: number;
+	sfx?: string;
+	sfxvol?: number;
+	sfxremove?: string;
+	sfxremovevol?: number;
 
 	penalty?: Record<string, number>;
 
@@ -3683,6 +3739,7 @@ type KDLockType = {
 
 	levelStart: (item) => void;
 	shrineImmune: boolean;
+	shopImmune?: boolean,
 
 	commandlevel: number;
 	commandable: boolean;
@@ -3906,6 +3963,10 @@ interface KDCursedDef {
 	blockable?: boolean,
 	/** Restraints with this curse are unremovable via shrine */
 	noShrine?: boolean,
+	/** Restraints with this curse are unremovable via shopkeeper */
+	noShop?: boolean,
+	/** Restraints with this curse are unremovable via purification */
+	noPurify?: boolean,
 	/** This curse is treated as a type of lock, for display purposes */
 	lock?: boolean,
 	/** Power multiplier of the curse, similar to a lock's lockmult */
@@ -3915,7 +3976,7 @@ interface KDCursedDef {
 	/** This curse keeps events with the curse property from vanishing */
 	activatecurse?: boolean,
 	/** custom icon for removing (failure) */
-	customIcon_RemoveFailure?: string,
+	customIcon_RemoveInfo?: string,
 	/** custom icon for removing (success) */
 	customIcon_RemoveSuccess?: string,
 	/** custom icon for the struggle groups display */
@@ -3928,8 +3989,13 @@ interface KDCursedDef {
 	customInfo?: (item: item, Curse?: string) => void,
 	onApply?: (item: item, host?: item) => void,
 	condition: (item: item) => boolean,
+	/** Make sure to fill altIcon */
+	condition2?: (item: item) => boolean,
+	altIcon?: string,
+	altText?: (item: item) => string,
+	unlockText?: (item: item) => string,
 	/** Can return a boolean. True means the item is removed, if unlocked */
-	remove: (item: item, host: item, specialMethod: boolean) => boolean | void, events?: KinkyDungeonEvent[]
+	remove: (item: item, host: item, specialMethod: boolean, index?: number) => boolean | void, events?: KinkyDungeonEvent[]
 
 	entityCanUnlock: (entity: entity, player: entity, data: KDLockEntityCanUnlockData) => boolean;
 	entityDoUnlock: (entity: entity, player: entity, data: KDLockEntityDoUnlockData) => boolean;
@@ -3976,20 +4042,20 @@ type KDConsumableVariant = {
 
 interface KDSpellComponent {
 	/** Returns true if the component is ignored in this case even for partial applications */
-	ignore: (spell: spell, x: number, y: number) => boolean,
+	ignore: (spell: spell, x: number, y: number, player: entity) => boolean,
 	/** Returns true if the spell can be cast, or false otherwise */
-	check: (spell: spell, x: number, y: number) => boolean,
+	check: (spell: spell, x: number, y: number, player: entity) => boolean,
 	/** Run when the spell is cast */
-	cast?: (spell: spell, data: any) => void,
+	cast?: (spell: spell, data: any, player: entity) => void,
 	/** Get the name of the component when hovering over spell icon */
-	stringShort: (ret: string) => string,
+	stringShort: (ret: string, player: entity) => string,
 	/** Get the name of the component in the spell description */
-	stringLong: (spell: spell) => string,
+	stringLong: (spell: spell, player: entity) => string,
 
 	/** Returns the component's partial miscast chance, such as from being gagged or wearing heels */
-	partialMiscastChance: (spell: spell, x: number, y: number) => number,
+	partialMiscastChance: (spell: spell, x: number, y: number, player: entity) => number,
 	/** Returns the message suffix for failing due to a partial miscast chance */
-	partialMiscastType: (spell: spell, x: number, y: number) => string,
+	partialMiscastType: (spell: spell, x: number, y: number, player: entity) => string,
 
 }
 
@@ -4214,7 +4280,8 @@ interface KDEnchantmentType {
 }
 
 interface KDHexEnchantEventsData {
-	variant: {events: KinkyDungeonEvent[], template: string},
+	variant?: {events: KinkyDungeonEvent[], template: string},
+	seed: string,
 }
 interface KDHexEnchantWeightData {
 	item: string,
@@ -4435,7 +4502,7 @@ type KDTeaseAttack = {
 	blockable: boolean,
 	dodgeable: boolean,
 	/** Allows this to be added to the list */
-	filter: (enemy: entity, player: entity, AIData: KDAIData) => boolean,
+	filter: (enemy: entity, player: entity, AIData: KDAIData, query?: boolean) => boolean,
 	/** Returns true if it connects, false otherwise if blocked/ignored somehow */
 	apply: (enemy: entity, player: entity, AIData: KDAIData, blocked: boolean, evaded: boolean, damageMod: number) => boolean,
 };
@@ -4471,6 +4538,8 @@ declare const PIXI: typeof import('pixi.js') & typeof import('pixi.js-legacy') &
 	// But that doesn't work, and this does.
 	filters: typeof import('pixi-filters'),
 };
+
+
 
 // We can't refer to a type as `PIXI.Container`, nor `typeof PIXI.Container`, but `import(pixi.js).Container` does work
 type PIXIContainer = import('pixi.js').Container;

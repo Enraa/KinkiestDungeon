@@ -140,6 +140,7 @@ function KDGoThruTile(x: number, y: number, suppressCheckPoint: boolean, force: 
 					if (MiniGameKinkyDungeonLevel >= KinkyDungeonMaxLevel) {
 						KDSetWorldSlot(0, 0, 0, 0);
 						KinkyDungeonState = "End";
+						KinkyDungeonSaveGame();
 						KinkyDungeonClassModeChoice = "";
 						MiniGameVictory = true;
 						suppressCheckPoint = true;
@@ -258,14 +259,13 @@ function KDGoThruTile(x: number, y: number, suppressCheckPoint: boolean, force: 
 			KDGenMapCallback = null;
 		}
 	}
-
 }
 
 
 function KDPostStairSave() {
 	if (KDGameData.RoomType == "PerkRoom" && MiniGameKinkyDungeonLevel >= 1) { //  && Math.floor(MiniGameKinkyDungeonLevel / 3) == MiniGameKinkyDungeonLevel / 3
 			if ((!KinkyDungeonStatsChoice.get("saveMode"))) {
-				let saveData = LZString.compressToBase64(JSON.stringify(KinkyDungeonSaveGame(true)));
+				let saveData = KDCompressSync(JSON.stringify(KinkyDungeonSaveGame(true)));
 				KinkyDungeonState = "Save";
 				KDTextArea("saveDataField", 750, 100, 1000, 230);
 				ElementValue("saveDataField", saveData);
@@ -285,7 +285,10 @@ function KinkyDungeonHandleStairs(toTile: string, suppressCheckPoint?: boolean) 
 		KDStairsAltAction[KinkyDungeonTilesGet(KinkyDungeonPlayerEntity.x + "," + KinkyDungeonPlayerEntity.y).AltStairAction](toTile, suppressCheckPoint);
 	}
 	else {
-		if (!KDPlayer().leash) {
+		if (!KDPlayer().leash || (
+			KinkyDungeonLeashingEnemy()?.IntentAction
+			&& KDIntentEvents[KinkyDungeonLeashingEnemy().IntentAction]?.allowStairs
+		)) {
 			KDGoThruTile(KDPlayer().x, KDPlayer().y, suppressCheckPoint, false, true);
 		} else {
 			KinkyDungeonSendActionMessage(10, TextGet("ClimbDownFail"), KDBaseWhite, 1);

@@ -264,6 +264,21 @@ let KDConsentListBasic: Record<string, ConsentListData> = {
             label: TextGet("KDConsentListDesc_" + "Petsuits"),
             tooltip: TextGet("KDConsentListDesc_" + "Petsuits"),
     },
+    ToeTies: {
+            name: "ToeTies",
+            color: KDBaseWhite,
+            bordercolor: KDBaseTeal,
+            textColor: KDBaseWhite,
+
+
+            perkRed: "",
+            perkYellow: "NoToeRope",
+            perkGreen: "",
+
+            priority: -10,
+            label: TextGet("KDConsentListDesc_" + "ToeTies"),
+            tooltip: TextGet("KDConsentListDesc_" + "ToeTies"),
+    },
     ForcedOwner: {
             name: "ForcedOwner",
             color: KDBaseWhite,
@@ -401,6 +416,21 @@ let KDConsentListBasic: Record<string, ConsentListData> = {
             label: TextGet("KDConsentListDesc_" + "SenseDep"),
             tooltip: TextGet("KDConsentListDesc_" + "SenseDep"),
     },
+    Earplugs: {
+            name: "Earplugs",
+            color: KDBaseWhite,
+            bordercolor: KDBaseTeal,
+            textColor: KDBaseWhite,
+
+
+            perkRed: "NoEarplugs",
+            perkYellow: "",
+            perkGreen: "",
+
+            priority: -10,
+            label: TextGet("KDConsentListDesc_" + "Earplugs"),
+            tooltip: TextGet("KDConsentListDesc_" + "Earplugs"),
+    },
     Kigu: {
             name: "Kigu",
             color: KDBaseWhite,
@@ -536,6 +566,7 @@ let KDConsentListBasic: Record<string, ConsentListData> = {
             label: TextGet("KDConsentListDesc_" + "PrisonerMarkings"),
             tooltip: TextGet("KDConsentListDesc_" + "PrisonerMarkings"),
     },
+    
     SleepFood: {
             name: "SleepFood",
             color: KDBaseWhite,
@@ -802,7 +833,7 @@ function KDDrawConsent(xOffset) {
 				});
                 KinkyDungeonPreviousState = "";
                 KinkyDungeonState = "Game";
-                KinkyDungeonDrawState = "Game";
+                KDGoToScreen("Game");
 				KDConfirmOverInventoryAction = false;
 			}
 			if (KDSoundEnabled())

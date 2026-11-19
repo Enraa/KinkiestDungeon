@@ -2,6 +2,7 @@
 // It is added on the npc being pathed
 
 interface PathCondition {
+	customPassMarker?: string,
 	/** Returns true if the attemptingNPC can path through thisNPC. No side effects. */
 	query: (attemptingNPC: entity, thisNPC: entity) => boolean,
 	/** Returns true if this can be displaced. TODO implement */
@@ -28,14 +29,18 @@ let KDPathConditions : Record<string, PathCondition> = {
 		},
 	},
 	barricade: {
+		customPassMarker: "Open",
 		query: (attemptingNPC: entity, thisNPC: entity) => {
-			// Everyone can pass barrels
-			// Even other barrels
+			if (attemptingNPC?.player) {
+				if (KDGetFaction(thisNPC) == "Player") return true;
+				return false;
+			}
+			// Everyone can pass barricades
 			return true;
 		},
 		doPassthrough: (attemptingNPC: entity, thisNPC: entity, mapdata: KDMapDataType) => {
 			// Removes the barricade for 1 turn
-			if (KDRemoveEntity(thisNPC, false, false, true)
+			if (KDRemoveEntity(thisNPC, false, false, true, undefined, undefined, true)
 				&& !KDEnemyIsTemporary(thisNPC)) {
 				KDAddRepopQueue({
 					x: thisNPC.x,
@@ -48,10 +53,16 @@ let KDPathConditions : Record<string, PathCondition> = {
 		},
 	},
 	witchwall: {
+		customPassMarker: "Open",
 		query: (attemptingNPC: entity, thisNPC: entity) => {
+			if (attemptingNPC?.player) {
+				if (KDGetFaction(thisNPC) == "Player") return true;
+				return false;
+			}
 			// Only Ranks 3 and above can pass through, or witches, or leashers
 			return (KDEnemyRank(attemptingNPC) >= 3
 				|| attemptingNPC.Enemy?.tags.witch)
+			|| KDGetFaction(thisNPC) == KDGetFaction(attemptingNPC)
 			|| KinkyDungeonJailGuard()?.id == attemptingNPC.id
 			|| KinkyDungeonLeashingEnemy()?.id == attemptingNPC.id;
 		},
@@ -61,28 +72,45 @@ let KDPathConditions : Record<string, PathCondition> = {
 		},
 	},
 	puppetstrings: {
+		customPassMarker: "Destroy",
 		query: (attemptingNPC: entity, thisNPC: entity) => {
+			if (attemptingNPC?.player) {
+				if (KDGetFaction(thisNPC) == "Player") return true;
+				return false;
+			}
 			// Only Ranks 3 and above can pass through, or witches, or dressmakers
 			return (KDEnemyRank(attemptingNPC) >= 3
 				|| attemptingNPC.Enemy?.tags.dressmaker)
+			|| KDGetFaction(thisNPC) == KDGetFaction(attemptingNPC)
 			|| KinkyDungeonJailGuard()?.id == attemptingNPC.id
 			|| KinkyDungeonLeashingEnemy()?.id == attemptingNPC.id;
 		},
 		doPassthrough: (attemptingNPC: entity, thisNPC: entity, mapdata: KDMapDataType) => {
-			// They move out of the way
-			return 1;
+			if (thisNPC.Enemy?.regen < 0) {
+				KDRemoveEntity(thisNPC, true, false, false, undefined, undefined, true)
+				return -1;
+			} else {
+				// Puppetmasters mistakenly has this set... this shouldnt be an issue, except that we dont want player to delete party members
+				return 1;
+			}
 		},
 	},
 	stonedoor: {
+		customPassMarker: "Open",
 		query: (attemptingNPC: entity, thisNPC: entity) => {
+			if (attemptingNPC?.player) {
+				if (KDGetFaction(thisNPC) == "Player") return true;
+				return false;
+			}
 			// Only Ranks 3 and above can pass through, or leashers
 			return KDEnemyRank(attemptingNPC) >= 3
+			|| KDGetFaction(thisNPC) == KDGetFaction(attemptingNPC)
 			|| KinkyDungeonJailGuard()?.id == attemptingNPC.id
 			|| KinkyDungeonLeashingEnemy()?.id == attemptingNPC.id;
 		},
 		doPassthrough: (attemptingNPC: entity, thisNPC: entity, mapdata: KDMapDataType) => {
 			// Removes the door but adds it to the map's 'repopulate' queue after 5 turns
-			if (KDRemoveEntity(thisNPC, false, false, true)
+			if (KDRemoveEntity(thisNPC, false, false, true, undefined, undefined, true)
 				&& !KDEnemyIsTemporary(thisNPC)) {
 				KDAddRepopQueue({
 					x: thisNPC.x,
@@ -95,19 +123,25 @@ let KDPathConditions : Record<string, PathCondition> = {
 		},
 	},
 	blastdoor: {
+		customPassMarker: "Open",
 		query: (attemptingNPC: entity, thisNPC: entity) => {
+			if (attemptingNPC?.player) {
+				if (KDGetFaction(thisNPC) == "Player") return true;
+				return false;
+			}
 			// Only Ranks 3 and above can pass through, or robots/cyborgs/dollsmiths/wolfgirls, or leashers
 			return (KDEnemyRank(attemptingNPC) >= 3
 				|| attemptingNPC.Enemy?.tags.robot
 				|| attemptingNPC.Enemy?.tags.trainer
 				|| attemptingNPC.Enemy?.tags.cyborg
 				|| attemptingNPC.Enemy?.tags.dollsmith)
+			|| KDGetFaction(thisNPC) == KDGetFaction(attemptingNPC)
 			|| KinkyDungeonJailGuard()?.id == attemptingNPC.id
 			|| KinkyDungeonLeashingEnemy()?.id == attemptingNPC.id;
 		},
 		doPassthrough: (attemptingNPC: entity, thisNPC: entity, mapdata: KDMapDataType) => {
 			// Removes the door but adds it to the map's 'repopulate' queue after 5 turns
-			if (KDRemoveEntity(thisNPC, false, false, true)
+			if (KDRemoveEntity(thisNPC, false, false, true, undefined, undefined, true)
 				&& !KDEnemyIsTemporary(thisNPC)) {
 				KDAddRepopQueue({
 					x: thisNPC.x,

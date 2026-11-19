@@ -666,6 +666,15 @@ function HasText(TextTag: string, params?: TemplateParams): boolean {
 }
 
 
+function TextGetFallback(key: string, fallback: string): string {
+	try {
+		return HasText(key) ? TextGet(key) : fallback;
+	} catch {
+		return fallback;
+	}
+}
+
+
 
 function TextLoad(): void {
 	textProvider.setLanguage(TranslationLanguage as LanguageIdentifier);
@@ -676,4 +685,10 @@ function addTextKey(Name: string, Text: string) {
 	textProvider
 		.getGroupManager()
 		.appendText("default", Name, Text);
+}
+function addTextKeyCareful(Name: string, Text: string) {
+	if (!HasText(Name))
+		textProvider
+			.getGroupManager()
+			.appendText("default", Name, Text);
 }

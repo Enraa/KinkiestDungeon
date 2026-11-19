@@ -54,7 +54,10 @@ let LAYERS_BASE = [
 	"Mouth",
 	"Blush",
 	"Fear",
+	"HeadphoneFront",
 	"Head",
+	"HeadphoneBack",
+	"Mic",
 
 
 	"InflatableArms",
@@ -346,7 +349,8 @@ let LAYERS_BASE = [
 	"TightPantsLeft",
 	
 	"StockingLeftKneel", "StockingLeft",
-	"FootLeft",
+	"PantiesDecoLeft",
+	"FootLeft", // unused
 	"LegLeft",
 
 	
@@ -457,7 +461,7 @@ let LAYERS_BASE = [
 	// Lower body underwear
 	"TightPantsRight",
 	"StockingRight",
-	"FootRight",
+	"FootRight", // unused
 	"LegRight",
 
 	"CorsetUnder", // Corsets go here when wearing pants
@@ -510,8 +514,8 @@ let LAYERS_BASE = [
 	"MittenLeft",
 	"GloveLeft",
 	"TightSleeveLeft",
-	"HandLeft",
 	"ArmLeft",
+	"HandLeft",
 
 	// Feet behind the body
 	"WrappingLegsUnderHogtie",
@@ -635,6 +639,13 @@ let LayerGroups = {
 	]),
 	"ChestBinding": ToMap([
 		"Chest",
+		"Chestplate",
+		"BraChest",
+		"BustierChest",
+		"ShirtChest",
+		"WrapChest",
+		"BindChestLower",
+		"Option_BindChestLower",
 		//"Shirt",
 		//"ShirtOver",
 	]),
@@ -878,7 +889,6 @@ let LayerGroups = {
 	"Heels": ToMap([
 		"OverShoes",
 		"OverSocks",
-		"FootLeft",
 		"StockingLeftKneel", "StockingLeft",
 		"FootLeft",
 		"LegLeft",
@@ -916,9 +926,8 @@ let LayerGroups = {
 		"FootLeft",
 		"FootRightKneel",
 		"StockingLeftKneel", "StockingLeft",
-		"FootLeftKneel",
+		//"FootLeftKneel",
 		"LegLeft",
-		"FootRight",
 		"StockingRight",
 		"FootRight",
 		"LegRight",
@@ -936,7 +945,6 @@ let LayerGroups = {
 		"StockingLeftKneel", "StockingLeft",
 		"FootLeft",
 		"LegLeft",
-		"FootRight",
 		"StockingRight",
 		"FootRight",
 		"LegRight",
@@ -1255,6 +1263,33 @@ let LayerGroups = {
 		"TorsoLower",
 		"Torso",
 	]),
+	
+	"CatsuitUpper": ToMap([
+		"CatsuitChest",
+		"TorsoUpper",
+	]),
+	"CatsuitLower": ToMap([
+		"FootRightKneel",
+		"FootLeftHogtie",
+		"FootLeft",
+		"LegLeft",
+		"FootRight",
+		"LegRight",
+		"TorsoLower",
+	]),
+	"CatsuitLegLeft": ToMap([
+		"FootRightKneel",
+		"FootLeft",
+		"LegLeft",
+	]),
+	"CatsuitLegRight": ToMap([
+		"FootRightKneel",
+		"FootRight",
+		"LegRight",
+	]),
+	"CatsuitChest": ToMap([
+		"CatsuitChest",
+	]),
 	"TightChastityBelt": ToMap([
 		"CorsetLiner",
 		// Skirts that dont follow shilhouette and are puffy
@@ -1571,6 +1606,7 @@ let LayerGroups = {
 		"BraChestDeco",
 		"BraChest",
 		"BindChestLower",
+		"Option_BindChestLower",
 	]),
 	"ShirtCutoffBra": ToMap([
 		"Chest",

@@ -6,7 +6,7 @@ interface KDPointCostSource extends KDPoint {
 	/**  f = cost with heuristic  */
 	f: number;
 	/**  s = source  */
-	s: string;
+	s: number;
 };
 
 let KDPathCache: Map<string, KDPoint[]> = new Map();
@@ -15,12 +15,18 @@ let KDPathCacheIgnoreLocks: Map<string, KDPoint[]> = new Map();
 
 let KDSmartMovable = new Map();
 let KDMovable = new Map();
+let KDUnreachable = new Map();
+let KDSmartUnreachable = new Map();
+let KDGroundUnreachable = new Map();
 
 function KDUpdateDoorNavMap() {
 	KDPathCache = new Map();
 	KDUpdateChokes = true;
 	KDMovable = new Map();
 	KDSmartMovable = new Map();
+	KDUnreachable = new Map();
+	KDSmartUnreachable = new Map();
+	KDGroundUnreachable = new Map();
 }
 
 /**
@@ -50,11 +56,66 @@ function KDIsSmartMovable(x: number, y: number): boolean {
 		return m;
 	}
 }
+/**
+ * @param x
+ * @param y
+ */
+function KDIsUnreachable(xstart: number, ystart: number, x: number, y: number): boolean {
+	if (KDUnreachable.has(xstart + ',' + ystart + ',' + x+','+y)) {
+		return true;
+	}
+	return false;
+}
+/**
+ * @param x
+ * @param y
+ */
+function KDIsSmartUnreachable(xstart: number, ystart: number, x: number, y: number): boolean {
+	if (KDSmartUnreachable.has(xstart + ',' + ystart + ',' + x+','+y)) {
+		return true;
+	}
+	return false;
+}
+/**
+ * @param x
+ * @param y
+ */
+function KDIsGroundUnreachable(xstart: number, ystart: number, x: number, y: number): boolean {
+	if (KDGroundUnreachable.has(xstart + ',' + ystart + ',' + x+','+y)) {
+		return true;
+	}
+	return false;
+}
 
 let KDPathfindingCacheHits = 0;
 let KDPathfindingCacheFails = 0;
 
 let KDPFTrim = 40;
+
+function KDWiredDoorPathable(triggerX: number, triggerY: number, tile?: string, doorX?: number, doorY?: number, ): boolean {
+	if (triggerX == doorX && triggerY == doorY) {
+		// a trigger on top of the door would be unreachable
+		return false;
+	}
+
+	const door = tile || KinkyDungeonTilesGet(`${doorX},${doorY}`);
+	switch (door?.wireType) {
+	case "AutoDoor_HoldOpen":
+	case "AutoDoor_Open":
+		break;
+	default:
+		// not a supported door
+		return false;
+	}
+	let effects = KDEffectTileTags(triggerX, triggerY);
+	if (!effects.wire) {
+		// door is adjacent to a trigger but not wired to it
+		return false;
+	}
+
+	// find a directly-adjacent door trigger
+	return !!effects.pathplate;
+}
 
 /**
  * @param startx - the start position
@@ -96,9 +157,29 @@ function KinkyDungeonFindPath (
 	/** can swap with things leashed with the same */
 	Leashtarget?: number,
 	RequireFog?: boolean,
-	EnemyWeight?: number
+	EnemyWeight?: number,
+	ignoreBlockers?: boolean,
+	preferFog?: boolean,
+	treatInvisibleAsEmpty?: boolean,
 ): KDPoint[]
 {
+	if (preferFog) {
+		let ret = KinkyDungeonFindPath(
+			startx, starty, endx, endy,
+			blockEnemy, blockPlayer, ignoreLocks, Tiles,
+			RequireLight, noDoors, needDoorMemory, Enemy,
+			trimLongDistance, heuristicOverride, taxicab,
+			ignoreTrafficLaws, allowPassable, ignoreAllWeighting,
+			Leashtarget, true, EnemyWeight, ignoreBlockers,
+			false,
+			treatInvisibleAsEmpty,
+		);
+		if (ret)
+			return ret;
+		
+		RequireFog = false;
+	}
+
 	let tileShort = Tiles;
 	if (Tiles == KinkyDungeonMovableTilesSmartEnemy) tileShort = "TSE";
 	else if (Tiles == KinkyDungeonMovableTilesEnemy) tileShort = "TE";
@@ -119,6 +200,13 @@ function KinkyDungeonFindPath (
 					return KDPathCache.get(index).slice(0);
 				else KDPathCache.delete(index);
 			}
+			if (tileShort == "TSE" && KDIsSmartUnreachable(startx, starty, endx, endy)) {
+				return null
+			} else if (tileShort == "TE" && KDIsUnreachable(startx, starty, endx, endy)) {
+				return null
+			} else if (tileShort == "TG" && KDIsGroundUnreachable(startx, starty, endx, endy)) {
+				return null
+			}
 		}
 
 	}
@@ -128,7 +216,7 @@ function KinkyDungeonFindPath (
 	}
 
 	function heuristic(xx: number, yy: number, endxx: number, endyy: number) {
-		return 0.1*KDistEuclideanApprox((xx - endxx) * (xx - endxx), (yy - endyy) * (yy - endyy));
+		return 0.5*KDistEuclideanApprox((xx - endxx), (yy - endyy));
 	}
 	let heur = heuristicOverride || heuristic;
 	// g = cost
@@ -136,20 +224,26 @@ function KinkyDungeonFindPath (
 	// s = source
 	let TilesTemp = Tiles;
 	if (noDoors) TilesTemp = Tiles.replace("D", "");
-	let start: KDPointCostSource = {x: startx, y: starty, g: 0, f: 0, s: ""};
+	let start: KDPointCostSource = {x: startx, y: starty, g: 0, f: 0, s: 0};
 
 	// We generate a grid based on map size
-	let open: Map<string, KDPointCostSource> = new Map();
-	open.set(startx + "," + starty, start);
-	let closed: Map<string, KDPointCostSource> = new Map();
+	let open: Map<number, KDPointCostSource> = new Map();
+	open.set(startx + starty * KDMapData.GridWidth, start);
+	let closed: Map<number, KDPointCostSource> = new Map();
 
 	let costBonus = 0;
 	let MapTile = null;
 	let moveCost = 1;
-	let succ = new Map();
+	let succ: Map<number, KDPointCostSource> = new Map();
 	let xx = 0;
 	let yy = 0;
 	let loc = "";
+	/** non-smart enemies that cant usedoors won't path through autodoors either
+	 * TBD on whether I want this sort of behavior- 
+	 * Also if there is an Enemy that is flying, it won't path through autodoors since pressureplates don't trigger on flying
+	 * Again TBD since I feel like levitating enemies should be able to press those
+	*/
+	let allowWiredDoors = TilesTemp.includes('D') && (!Enemy || !KDIsFlying(Enemy)); 
 
 	while(open.size > 0) {
 		// Trim if it takes too long
@@ -172,6 +266,11 @@ function KinkyDungeonFindPath (
 		});
 		if (lowest) {
 			let lowLoc = lowest.x + "," + lowest.y;
+			let locIndex = (!blockEnemy && !blockPlayer && !RequireLight && !RequireFog && !noDoors && !needDoorMemory) ?
+				`${lowLoc},${endx},${endy},${tileShort}` : null;
+			let lowIndex = lowest.x + lowest.y * KDMapData.GridWidth;
+			let cacheHit = !blockEnemy && !blockPlayer && !RequireLight && !RequireFog && !noDoors && !needDoorMemory
+				&& ((ignoreLocks && KDPathCacheIgnoreLocks.has(locIndex)) || (!ignoreLocks && KDPathCache.has(locIndex)));
 			moveCost = 1;
 			succ = new Map();
 			// Check bordering tiles on the lowest
@@ -180,15 +279,19 @@ function KinkyDungeonFindPath (
 					if ((x != 0 || y != 0) && (!taxicab || y == 0 || x == 0)) {
 						xx = lowest.x + x;
 						yy = lowest.y + y;
+						if (xx < -20 || xx >= KDMapData.GridWidth + 20) continue;
+						if (yy < -20 || yy >= KDMapData.GridHeight + 20) continue;
 						loc = (xx) + "," + (yy)
 						let tile = (xx == endx && yy == endy) ? "" : KinkyDungeonMapGet(xx, yy);
+						// The 20 tile buffer is to allow blind pathfinding into the dark, basically just to hide the map edge
 						MapTile = KinkyDungeonTilesGet(loc);
-						let locIndex = `${lowLoc},${endx},${endy},${tileShort}`;
+						
+						const useWiredDoor = allowWiredDoors && KDWiredDoorPathable(lowest.x, lowest.y, MapTile);
 						// If we have found the end
 						if (xx == endx && yy == endy) {
-							closed.set(lowLoc, lowest);
+							closed.set(lowIndex, lowest);
 							let newPath = KinkyDungeonGetPath(closed, lowest.x, lowest.y, endx, endy);
-							if (!blockEnemy && !blockPlayer && !RequireLight && !RequireLight && !noDoors && !needDoorMemory) {
+							if (!blockEnemy && !blockPlayer && !RequireLight && !RequireFog && !noDoors && !needDoorMemory) {
 								if (ignoreLocks) {
 									if (!KDPathCacheIgnoreLocks.has(index)) KDSetPathfindCache(KDPathCacheIgnoreLocks, newPath, endx, endy, tileShort, index);
 								} else {
@@ -199,17 +302,16 @@ function KinkyDungeonFindPath (
 							if (newPath.length > 0 && TilesTemp.includes(KinkyDungeonMapGet(newPath[0].x, newPath[0].y)))
 								return newPath;
 							else return undefined;
-						} else if (!blockEnemy && !blockPlayer && !RequireLight && !RequireLight && !noDoors && !needDoorMemory
-								&& ((ignoreLocks && KDPathCacheIgnoreLocks.has(locIndex)) || (!ignoreLocks && KDPathCache.has(locIndex)))) {
+						} else if (cacheHit) {
 							let newPath = [];
 							if (ignoreLocks) {
-								closed.set(lowLoc, lowest);
+								closed.set(lowIndex, lowest);
 								newPath = KinkyDungeonGetPath(closed, lowest.x, lowest.y);
 								let endPath = KDPathCacheIgnoreLocks.get(locIndex).slice(0);
 								KDPathfindingCacheHits++;
 								newPath.push(...endPath);
 							} else {
-								closed.set(lowLoc, lowest);
+								closed.set(lowIndex, lowest);
 								newPath = KinkyDungeonGetPath(closed, lowest.x, lowest.y);
 								let endPath = KDPathCache.get(locIndex).slice(0);
 								KDPathfindingCacheHits++;
@@ -232,54 +334,65 @@ function KinkyDungeonFindPath (
 							} else return undefined;
 						}
 						// Give up and add to the test array
-						else if (TilesTemp.includes(tile)
-							&& (!RequireLight || KinkyDungeonVisionGet(xx, yy) > 0)
+						else if (
+							(!RequireLight || KinkyDungeonVisionGet(xx, yy) > 0)
 							&& (!RequireFog || KinkyDungeonVisionGet(xx, yy) > 0 || KinkyDungeonFogGet(xx, yy) > 0)
-							&& (ignoreLocks || !MapTile || !MapTile.Lock || (Enemy && KDLocks[MapTile.Lock].canNPCPass(xx, yy, MapTile, Enemy)))
-							&& (!KinkyDungeonEnemyAt(xx, yy)?.Enemy?.immobile)
-							&& (!blockEnemy || !!EnemyWeight
-								|| ((needDoorMemory && KinkyDungeonVisionGet(xx, yy) <= 0.1)
-									|| ((Leashtarget > 0 && Leashtarget == KinkyDungeonEnemyAt(xx, yy)?.leash?.entity)
-									|| KinkyDungeonNoEnemyExceptSub(xx, yy, false, Enemy)
-									|| (allowPassable && KDCanPassEnemy(KDPlayer(), KinkyDungeonEnemyAt(xx, yy))))))
-							&& (!blockPlayer || KinkyDungeonPlayerEntity.x != xx || KinkyDungeonPlayerEntity.y != yy)
-							&& (!needDoorMemory || tile != "d" || KDOpenDoorTiles.includes(KDMapData.TilesMemory[xx + "," + yy]))) {
+							&& ((treatInvisibleAsEmpty && 
+								!(KinkyDungeonVisionGet(xx, yy) > 0 || KinkyDungeonFogGet(xx, yy) > 0))
+								|| (
+								(TilesTemp.includes(tile) || useWiredDoor)
+								&& (ignoreLocks || !MapTile || !MapTile.Lock || (Enemy && KDLocks[MapTile.Lock].canNPCPass(xx, yy, MapTile, Enemy)))
+								&& (ignoreBlockers || !KinkyDungeonEnemyAt(xx, yy)?.Enemy?.immobile)
+								&& (!blockEnemy || !!EnemyWeight
+									|| ((needDoorMemory && KinkyDungeonVisionGet(xx, yy) <= 0.1)
+										|| ((Leashtarget > 0 && Leashtarget == KinkyDungeonEnemyAt(xx, yy)?.leash?.entity)
+										|| KinkyDungeonNoEnemyExceptSub(xx, yy, false, Enemy)
+										|| (allowPassable && KDCanPassEnemy(KDPlayer(), KinkyDungeonEnemyAt(xx, yy))))))
+								&& (!blockPlayer || KinkyDungeonPlayerEntity.x != xx || KinkyDungeonPlayerEntity.y != yy)
+								&& (!needDoorMemory || tile != "d" || KDMapData.TilesMemory[xx + "," + yy]?.includes("Open") || useWiredDoor)
+							))
+							) {
 							costBonus = 0;
-							if (EnemyWeight) {
-								if (!(((needDoorMemory && KinkyDungeonVisionGet(xx, yy) <= 0.1)
-									|| ((Leashtarget > 0 && Leashtarget == KinkyDungeonEnemyAt(xx, yy)?.leash?.entity)
-									|| KinkyDungeonNoEnemyExceptSub(xx, yy, false, Enemy)
-									|| (allowPassable && KDCanPassEnemy(KDPlayer(), KinkyDungeonEnemyAt(xx, yy))))))) {
-										costBonus += EnemyWeight;
-									}
-							}
-							if (!ignoreTrafficLaws && !ignoreAllWeighting) {
-								if (KDEffectTileTagsLoc(loc)?.danger) costBonus += 12;
-								if (Enemy) {
-									if (KDTileSlows(Enemy, xx, yy)) costBonus += 3;
+
+							if (!treatInvisibleAsEmpty || (KinkyDungeonFogGet(xx, yy) > 0 || KinkyDungeonVisionGet(xx, yy) > 0)) {
+								if (EnemyWeight && (!treatInvisibleAsEmpty || KinkyDungeonVisionGet(xx, yy) > 0)) {
+									if (!(((needDoorMemory && KinkyDungeonVisionGet(xx, yy) <= 0.1)
+										|| ((Leashtarget > 0 && Leashtarget == KinkyDungeonEnemyAt(xx, yy)?.leash?.entity)
+										|| KinkyDungeonNoEnemyExceptSub(xx, yy, false, Enemy)
+										|| (allowPassable && KDCanPassEnemy(KDPlayer(), KinkyDungeonEnemyAt(xx, yy))))))) {
+											costBonus += EnemyWeight;
+										}
 								}
-								else if (tile == "V" && !(MapTile?.Sfty)) costBonus = 14;
-								else if (tile == "N") costBonus = 30;
-								else if (tile == "D") costBonus = 2.5;
-								else if (tile == "g") costBonus = 5;
-								else if (tile == "L") costBonus = 4;
-								else if (tile == "T") costBonus = 2;
-								costBonus = (MapTile && MapTile.Lock) ? costBonus + 2 : costBonus;
-								costBonus = (MapTile && MapTile.OL) ? costBonus + 12 : costBonus;
-								costBonus = (KDMapData.Traffic?.length > 0 && KDMapData.Traffic[yy])
-									? costBonus + (KDMapData.Traffic[yy][xx] || 0) : costBonus;
-								costBonus = Math.max(0, costBonus);
-							} else if (!ignoreAllWeighting) {
-								if (tile == "V" && !(MapTile?.Sfty)) costBonus = 3;
-								else if (tile == "N") costBonus = 8;
-								else if (tile == "L") costBonus = 2;
-							}
+								if (!ignoreTrafficLaws && !ignoreAllWeighting) {
+									if (KDEffectTileTagsLoc(loc)?.danger) costBonus += 12;
+									if (Enemy) {
+										if (KDTileSlows(Enemy, xx, yy)) costBonus += 3;
+									}
+									else if (tile == "V" && !(MapTile?.Sfty)) costBonus = 14;
+									else if (tile == "N") costBonus = 30;
+									else if (tile == "D") costBonus = 2.5;
+									else if (tile == "g") costBonus = 5;
+									else if (tile == "L") costBonus = 4;
+									else if (tile == "T") costBonus = 2;
+									costBonus = (MapTile && MapTile.Lock) ? costBonus + 2 : costBonus;
+									costBonus = (MapTile && MapTile.OL) ? costBonus + 12 : costBonus;
+									costBonus = (KDMapData.Traffic?.length > 0 && KDMapData.Traffic[yy])
+										? costBonus + (KDMapData.Traffic[yy][xx] || 0) : costBonus;
+									costBonus = Math.max(0, costBonus);
+								} else if (!ignoreAllWeighting) {
+									if (tile == "V" && !(MapTile?.Sfty)) costBonus = 3;
+									else if (tile == "N") costBonus = 8;
+									else if (tile == "L") costBonus = 2;
+								}
+							} else costBonus = 10; // prefer not to go in unknown
+							
 							// when moving diagonally we penalize if we werent moving diagonally before
 							// this is to help avoid weird zigzag patterns when realistically an enemy should walk straight thru a room
 							if (!!x && !!y) {
-								if (lowest_old) {
-									dx = lowest.x-lowest_old.x;
-									dy = lowest.y-lowest_old.y;
+								let parent = lowest.s ? closed.get(lowest.s) : undefined
+								if (parent) {
+									dx = lowest.x-parent.x;
+									dy = lowest.y-parent.y;
 									if (dx != x || dy != y) {
 										costBonus += 0.41;
 									} else costBonus += 0.1;
@@ -287,16 +400,16 @@ function KinkyDungeonFindPath (
 									costBonus += 0.4;
 								}
 							}
-							succ.set(xx + "," + yy, {x: xx, y: yy,
+							succ.set(xx + KDMapData.GridWidth *  yy, {x: xx, y: yy,
 								g: moveCost + costBonus + lowest.g,
 								f: moveCost + costBonus + lowest.g + heur(xx, yy, endx, endy),
-								s: lowLoc});
+								s: lowIndex});
 						}
 					}
 				}
 			}
 			succ.forEach(s => {
-				let q = s.x + "," + s.y;
+				let q = s.x + KDMapData.GridWidth * s.y;
 				let openSucc = open.get(q);
 				if (!openSucc || openSucc.f > s.f) {
 					let closedSucc = closed.get(q);
@@ -307,12 +420,22 @@ function KinkyDungeonFindPath (
 			});
 
 
-			open.delete(lowLoc);
+			open.delete(lowIndex);
 
-			closed.set(lowLoc, lowest);
+			closed.set(lowIndex, lowest);
 		} else {
 			open.clear();
 			console.log("Pathfinding error! Please report this!");
+		}
+	}
+
+	if (!blockEnemy && !blockPlayer && !RequireLight && !RequireFog && !noDoors && !needDoorMemory && !ignoreLocks) {
+		if (tileShort == "TSE") {
+			KDSmartUnreachable.set(startx + ',' + starty + ',' + endx + ',' + endy, true);
+		} else if (tileShort == "TE") {
+			KDUnreachable.set(startx + ',' + starty + ',' + endx + ',' + endy, true);
+		} else if (tileShort == "TG") {
+			KDGroundUnreachable.set(startx + ',' + starty + ',' + endx + ',' + endy, true);
 		}
 	}
 
@@ -320,11 +443,11 @@ function KinkyDungeonFindPath (
 }
 
 // Goes back and gets path backwards from xx, adding endx and endy
-function KinkyDungeonGetPath(closed: Map<string, KDPointCostSource>, xx: number, yy: number, endx?: number, endy?: number): KDPoint[] {
+function KinkyDungeonGetPath(closed: Map<number, KDPointCostSource>, xx: number, yy: number, endx?: number, endy?: number): KDPoint[] {
 	let list = [];
 	if (endx && endy) list.push({x: endx, y: endy});
 
-	let current = closed.get(xx + "," + yy);
+	let current = closed.get(xx + KDMapData.GridWidth * yy);
 	while (current) {
 		if (current.s) {
 			list.push({x: current.x, y: current.y});

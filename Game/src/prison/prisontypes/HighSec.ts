@@ -83,7 +83,8 @@ KDPrisonTypes.HighSec = {
 				if (en.Enemy.tags.jailer) guardCount += 1;
 			}
 		}
-		if (guardCount > 6) {
+		let gc = 6;
+		if (guardCount > gc) {
 			let max = guardCount * 0.2;
 			let despawning = 0;
 			for (let en of idleGuards) {
@@ -107,7 +108,9 @@ KDPrisonTypes.HighSec = {
 					if (despawning > max) break;
 				}
 			}
-		} else if (!KinkyDungeonFlags.get("guardspawn")) {
+		} 
+		if (KinkyDungeonFlags.get("requestCommonGuard")
+			|| (guardCount <= gc &&  !KinkyDungeonFlags.get("guardspawn"))) {
 			// TODO replace with map flags
 			// spawn a new one
 			if (KinkyDungeonFlags.get("shiftchange")) {
@@ -125,7 +128,8 @@ KDPrisonTypes.HighSec = {
 			
 
 
-			if (KDMapData.Labels && KDMapData.Labels.Deploy?.length > 0) {
+			if (
+				KDMapData.Labels && KDMapData.Labels.Deploy?.length > 0) {
 				let l = KDMapData.Labels.Deploy[Math.floor(KDRandom() * KDMapData.Labels.Deploy.length)];
 
 				let Enemy = KDGetJailEnemy();
@@ -144,6 +148,7 @@ KDPrisonTypes.HighSec = {
 					en.gy = l.y;
 					KinkyDungeonSetEnemyFlag(en, "mapguard", -1);
 					KinkyDungeonSetEnemyFlag(en, "spawned", 300);
+					KinkyDungeonSetFlag("requestCommonGuard", 0);
 					//KinkyDungeonSetEnemyFlag(en, "cyberaccess", -1);
 				}
 			}
@@ -213,11 +218,12 @@ KDPrisonTypes.HighSec = {
 
 					if (nearestJail) {
 
-						let xx = nearestJail.x + KinkyDungeonJailLeashX;
+						let xx = nearestJail.x;
 						let yy = nearestJail.y;
+						let inside = KDJailPointInside(nearestJail);
 						KDJailEvents.useCurrentGuard.trigger(
 							KinkyDungeonJailGuard(),
-							xx, yy
+							xx, yy,  inside.x, inside.y
 						);
 					}
 
@@ -231,7 +237,7 @@ KDPrisonTypes.HighSec = {
 			
 
 				let lostTrack = KDLostJailTrackCell(player);
-				if (lostTrack == "Unaware") {
+				if (KDNoInteractResults.includes(lostTrack)) {
 					return KDSetPrisonState(player, "Jail");
 				}
 
@@ -324,7 +330,7 @@ KDPrisonTypes.HighSec = {
 					if (guard.IntentAction != action)
 						KDIntentEvents[action].trigger(guard, {});
 					else guard.playWithPlayer = Math.max(guard.playWithPlayer, 3);
-					KinkyDungeonSetEnemyFlag(guard, "overrideMove", 2);
+					KinkyDungeonSetEnemyFlag(guard, "overrideMoveNoCom", 2);
 					if (KDistChebyshev(guard.x - player.x, guard.y - player.y) < 1.5) {
 						if (KDPrisonIsInFurniture(player)) {
 							// Remove one per turn
@@ -356,7 +362,7 @@ KDPrisonTypes.HighSec = {
 						if (guard.IntentAction != action)
 							KDIntentEvents[action].trigger(guard, {});
 						else guard.playWithPlayer = Math.max(guard.playWithPlayer, 3);
-						KinkyDungeonSetEnemyFlag(guard, "overrideMove", 2);
+						KinkyDungeonSetEnemyFlag(guard, "overrideMoveNoCom", 2);
 						if (KDistChebyshev(guard.x - player.x, guard.y - player.y) < 1.5) {
 							let lockType = "Red";
 							return KDDoUniformApply(player, guard, undefined, lockType, KDJAILPOWER);
@@ -379,7 +385,7 @@ KDPrisonTypes.HighSec = {
 
 
 				let lostTrack = KDLostJailTrack(player);
-				if (lostTrack == "Unaware") {
+				if (KDNoInteractResults.includes(lostTrack)) {
 					return KDSetPrisonState(player, "Jail");
 				}
 
@@ -400,7 +406,7 @@ KDPrisonTypes.HighSec = {
 						guard.gy = player.y;
 						KDUpdateMoveToEntity(guard);
 						KinkyDungeonSetEnemyFlag(guard, "wander", 30)
-						KinkyDungeonSetEnemyFlag(guard, "overrideMove", 10);
+						KinkyDungeonSetEnemyFlag(guard, "overrideMoveNoCom", 4);
 					}
 					if (KDGameData.PrisonerState == 'jail') {
 						KinkyDungeonSetEnemyFlag(guard, "notouchie", 2);
@@ -430,7 +436,7 @@ KDPrisonTypes.HighSec = {
 
 				let nearestfurniture = guard ?KinkyDungeonNearestJailPoint(guard.x, guard.y, ["furniture"], 
 					undefined, undefined, true, 
-					KDGetFurnitureCriteria(player)) : null;
+					KDGetFurnitureCriteria(player, guard)) : null;
 				// End when the player is settled
 				if (!nearestfurniture || KDPrisonIsInFurniture(player) && !KinkyDungeonFlags.get("jailStripSearched")) {
 					if (!KinkyDungeonFlags.get("stripSearchComplete")) {
@@ -458,12 +464,12 @@ KDPrisonTypes.HighSec = {
 				KinkyDungeonSetFlag("noWeaponStop", 10);
 				let nearestfurniture = guard ?KinkyDungeonNearestJailPoint(guard.x, guard.y, ["furniture"], 
 					undefined, undefined, true, 
-					KDGetFurnitureCriteria(player)) : null;
+					KDGetFurnitureCriteria(player, guard)) : null;
 				if (guard && (!nearestfurniture || KDPrisonIsInFurniture(player))) {
 					guard.gx = player.x;
 					guard.gy = player.y;
 					KDUpdateMoveToEntity(guard);
-					KinkyDungeonSetEnemyFlag(guard, "overrideMove", 2);
+					KinkyDungeonSetEnemyFlag(guard, "overrideMoveNoCom", 2);
 					if (KDistChebyshev(guard.x - player.x, guard.y - player.y) < 1.5) {
 						if (!nearestfurniture || KDPrisonIsInFurniture(player)) {
 							KinkyDungeonSetFlag("jailStripSearched", KDJailStripSearchTime);
@@ -487,13 +493,13 @@ KDPrisonTypes.HighSec = {
 				KinkyDungeonSetFlag("noWeaponStop", 10);
 
 				let lostTrack = KDLostJailTrack(player);
-				if (lostTrack == "Unaware") {
+				if (KDNoInteractResults.includes(lostTrack)) {
 					return KDSetPrisonState(player, "Jail");
 				}
 				let guard = KDPrisonCommonGuard(player);
 				let nearestfurniture = guard ?KinkyDungeonNearestJailPoint(guard.x, guard.y, ["furniture"], 
 					undefined, undefined, true, 
-					KDGetFurnitureCriteria(player)) : null;
+					KDGetFurnitureCriteria(player, guard)) : null;
 				// End when the player is settled
 				if (!nearestfurniture || KDPrisonIsInFurniture(player)) {
 					if (guard) KDResetIntent(guard);
@@ -517,7 +523,7 @@ KDPrisonTypes.HighSec = {
 						guard.gy = player.y;
 						KDUpdateMoveToEntity(guard);
 						KinkyDungeonSetEnemyFlag(guard, "wander", 30)
-						KinkyDungeonSetEnemyFlag(guard, "overrideMove", 10);
+						KinkyDungeonSetEnemyFlag(guard, "overrideMoveNoCom", 4);
 					}
 					if (KDGameData.PrisonerState == 'jail') {
 						KinkyDungeonSetEnemyFlag(guard, "notouchie", 2);
@@ -574,7 +580,7 @@ KDPrisonTypes.HighSec = {
 				let player = KinkyDungeonPlayerEntity;
 
 				let lostTrack = KDLostJailTrack(player);
-				if (lostTrack == "Unaware") {
+				if (KDNoInteractResults.includes(lostTrack)) {
 					return KDSetPrisonState(player, "Jail");
 				}
 
@@ -595,7 +601,7 @@ KDPrisonTypes.HighSec = {
 							guard.gy = player.y;
 							KDUpdateMoveToEntity(guard);
 							KinkyDungeonSetEnemyFlag(guard, "wander", 30)
-							KinkyDungeonSetEnemyFlag(guard, "overrideMove", 10);
+							KinkyDungeonSetEnemyFlag(guard, "overrideMoveNoCom", 4);
 						}
 
 						if (KinkyDungeonLeashingEnemy() == guard) {
@@ -624,3 +630,5 @@ KDPrisonTypes.HighSec = {
 		},
 	},
 };
+
+let KDNoInteractResults = ["Unaware", "NotJailed"];
