@@ -4,6 +4,8 @@ interface KDCreateMapReturnData {
 	oldMapDataObject: KDMapDataType,
 }
 
+let KDMapGenExecuteAfterIterations = [];
+
 /**
  * Starts the the game at a specified level
  * Example usage:
@@ -36,13 +38,13 @@ function KinkyDungeonCreateMap (
 	forceEscape?:    string
 ): KDCreateMapReturnData
 {
+	KDMapGenExecuteAfterIterations = [];
 	// every time a map is created or moved the preference flags are updated
 	KDUpdatePreferenceFlags();
 	KDResetDialogue();
 
 	KDTileModes = {};
 	KDUpdateOptionGame(false);
-	KDBreakTether(KDPlayer());
 
 	KinkyDungeonRemoveBuffsWithTag(KinkyDungeonPlayerEntity, ["removeNewMap"]);
 	KDGameData.PreferredJailPointTick = 0;
@@ -123,6 +125,10 @@ function KinkyDungeonCreateMap (
 		if (!altType?.loadscript || altType.loadscript(false)) {
 			if (!altType?.noPersistentPrisoners && !mapMod?.noPersistentPrisoners)
 				KDRepopulatePersistentNPCs();
+			for (let cb of KDMapGenExecuteAfterIterations) {
+				cb();
+			}
+			KDMapGenExecuteAfterIterations = [];
 			if (!altType?.noPersistentSpawn && !mapMod?.noPersistentSpawn)
 				// Spawn wandering persistent NPCs depending on spawn AI
 				KDSpawnPersistentNPCs({
@@ -146,6 +152,8 @@ function KinkyDungeonCreateMap (
 			oldMapDataObject: oldMapData,
 		};
 	}
+	
+	let tether = KDBreakTether(KDPlayer());
 
 	// Filter out the allies
 	KDMapData.Entities = KDMapData.Entities.filter((enemy) => {
@@ -160,6 +168,7 @@ function KinkyDungeonCreateMap (
 
 	let maxIter = 100;
 	for (let iterations = 0; iterations <= maxIter; iterations++) {
+		KDMapGenExecuteAfterIterations = [];
 		if (iterations > 0) {
 			// Clear so party prisoners are reused
 			for (let en of [...KDMapData.Entities]) {
@@ -494,8 +503,14 @@ function KinkyDungeonCreateMap (
 			}
 			let traps2 = [];
 			if (!altType || altType.placeDoors)
-				traps2 = KinkyDungeonPlaceDoors(doorchance, doortrapchance, nodoorchance, doorlockchance, trapChance, grateChance, Floor, width, height,
+				traps2 = KinkyDungeonPlaceDoors(doorchance, doortrapchance, nodoorchance, 
+			doorlockchance, trapChance, grateChance, Floor, width, height,
 				!altType ? KDPlaceMode.MODE_MODIFYPOTENTIALANDEXISTING : (altType.doorPlaceMode || KDPlaceMode.MODE_PLACENEW));
+			
+			if (!altType || !altType.placeDoors) {
+				KDFixDoors(width, height);
+			}
+			
 			if (KDDebug) {
 				console.log(`${performance.now() - startTime} ms for door creation`);
 				startTime = performance.now();
@@ -735,6 +750,7 @@ function KinkyDungeonCreateMap (
 				KDMoveEntity(e, point.x, point.y, false,undefined, undefined, true);
 				e.visual_x = point.x;
 				e.visual_y = point.y;
+				if (tether && tether.entity == e.id) KDPlayer().leash = tether;
 			}
 
 			KDUnPackEnemies(KDMapData);
@@ -746,6 +762,13 @@ function KinkyDungeonCreateMap (
 			KinkyDungeonAdvanceTime(0);
 		}
 	}
+
+	// purely for debugging
+	let fails2 = KDCreateBoringness(false, false);
+	if (fails2 > 0) {
+		console.log("Warning: some tiles are inaccessible (this can be normal)")
+	}
+	KDCreateBoringness(false, true);
 
 	location.data[KDGameData.RoomType] = KDMapData;
 
@@ -760,10 +783,19 @@ function KinkyDungeonCreateMap (
 		return (!KDGetNPCLocation(enemy.id) || KDCompareLocation(KDGetNPCLocation(enemy.id), KDGetCurrentLocation()));
 	});
 	KinkyDungeonAdvanceTime(0);
+	for (let cb of KDMapGenExecuteAfterIterations) {
+		cb();
+	}
+	KDMapGenExecuteAfterIterations = [];
 
 	if (!altType?.loadscript || altType.loadscript(true)) {
 		if (!altType?.noPersistentPrisoners && !mapMod?.noPersistentPrisoners)
 			KDRepopulatePersistentNPCs();
+
+		for (let cb of KDMapGenExecuteAfterIterations) {
+				cb();
+			}
+		KDMapGenExecuteAfterIterations = [];
 
 		if (!altType?.noPersistentSpawn && !mapMod?.noPersistentSpawn)
 			// Spawn wandering persistent NPCs depending on spawn AI
@@ -773,6 +805,8 @@ function KinkyDungeonCreateMap (
 				room: KDGameData.RoomType,
 			}, true);
 	}
+
+	
 
 	KinkyDungeonGenNavMap();
 
@@ -1432,6 +1466,7 @@ function KinkyDungeonPlaceEnemies(spawnPoints: any[], InJail: boolean, mapmodtag
 				let custom = KDProcessCustomPatron(Enemy, e, (clusterLeader) ? 1.0 : (!currentCluster ? 0.1 : 0.0), true);
 				let incrementCount = 1;
 				KinkyDungeonSetEnemyFlag(e, "NoFollow", -1);
+				KinkyDungeonSetEnemyFlag(e, "FollowMe", 0);
 				let shop = KinkyDungeonGetShopForEnemy(e, false);
 				if (shop) {
 					KinkyDungeonSetEnemyFlag(e, "Shop", -1);

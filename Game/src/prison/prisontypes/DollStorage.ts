@@ -63,7 +63,7 @@ KDPrisonTypes.DollStorage = {
 					}
 				} else {
 					KinkyDungeonSetEnemyFlag(gg, "idlegselect", 2);
-					KinkyDungeonSetEnemyFlag(gg, "overrideMove", 10);
+					KinkyDungeonSetEnemyFlag(gg, "overrideMoveNoCom", 4);
 					gg.gx = doll.x;
 					gg.gy = doll.y;
 					KDUpdateMoveToEntity(gg);
@@ -116,7 +116,7 @@ KDPrisonTypes.DollStorage = {
 							doll.hp = 0;
 						} else {
 							KinkyDungeonSetEnemyFlag(gg, "idlegselect", 2);
-							KinkyDungeonSetEnemyFlag(gg, "overrideMove", 10);
+							KinkyDungeonSetEnemyFlag(gg, "overrideMoveNoCom", 4);
 							KinkyDungeonSetEnemyFlag(gg, "leashPrisoner", 3);
 							KinkyDungeonAttachTetherToEntity(1.5, gg, doll, "DollLeash", KDBasePink, 6);
 							gg.gx = storage.x;
@@ -134,7 +134,7 @@ KDPrisonTypes.DollStorage = {
 					}
 				} else {
 					KinkyDungeonSetEnemyFlag(gg, "idlegselect", 2);
-					KinkyDungeonSetEnemyFlag(gg, "overrideMove", 10);
+					KinkyDungeonSetEnemyFlag(gg, "overrideMoveNoCom", 4);
 					gg.gx = doll.x;
 					gg.gy = doll.y;
 					KDUpdateMoveToEntity(gg);
@@ -182,7 +182,7 @@ KDPrisonTypes.DollStorage = {
 							KinkyDungeonSetEnemyFlag(doll, "tryNotToSwap", 500);
 						} else {
 							KinkyDungeonSetEnemyFlag(gg, "idlegselect", 2);
-							KinkyDungeonSetEnemyFlag(gg, "overrideMove", 10);
+							KinkyDungeonSetEnemyFlag(gg, "overrideMoveNoCom", 4);
 							KinkyDungeonSetEnemyFlag(gg, "leashPrisoner", 3);
 							KinkyDungeonAttachTetherToEntity(1.5, gg, doll, "DollLeash", KDBaseCyan, 6);
 							gg.gx = storage.x;
@@ -200,7 +200,7 @@ KDPrisonTypes.DollStorage = {
 					}
 				} else {
 					KinkyDungeonSetEnemyFlag(gg, "idlegselect", 2);
-					KinkyDungeonSetEnemyFlag(gg, "overrideMove", 10);
+					KinkyDungeonSetEnemyFlag(gg, "overrideMoveNoCom", 4);
 					gg.gx = doll.x;
 					gg.gy = doll.y;
 					KDUpdateMoveToEntity(gg);
@@ -218,6 +218,7 @@ KDPrisonTypes.DollStorage = {
 				if (en.Enemy.tags.jailer) guardCount += 1;
 			}
 		}
+		let gc = 8;
 		if (guardCount > 8) {
 			for (let en of idleGuards) {
 				KinkyDungeonSetEnemyFlag(en, "despawn", 300);
@@ -229,7 +230,9 @@ KDPrisonTypes.DollStorage = {
 				en.despawnY = KDMapData.EndPosition.y;
 				en.goToDespawn = true;
 			}
-		} else if (!KinkyDungeonFlags.get("guardspawn")) {
+		}
+		if (KinkyDungeonFlags.get("requestCommonGuard")
+			|| (guardCount <= gc && !KinkyDungeonFlags.get("guardspawn"))) {
 			// TODO replace with map flags
 			// spawn a new one
 			if (KinkyDungeonFlags.get("shiftchange")) {
@@ -264,6 +267,7 @@ KDPrisonTypes.DollStorage = {
 					en.gy = l.y;
 					KinkyDungeonSetEnemyFlag(en, "mapguard", -1);
 					KinkyDungeonSetEnemyFlag(en, "cyberaccess", -1);
+					KinkyDungeonSetFlag("requestCommonGuard", 0);
 				}
 			}
 		}
@@ -323,7 +327,7 @@ KDPrisonTypes.DollStorage = {
 
 
 				let lostTrack = KDLostJailTrack(player);
-				if (lostTrack == "Unaware") {
+				if (KDNoInteractResults.includes(lostTrack)) {
 					return KDSetPrisonState(player, "Jail");
 				}
 
@@ -356,7 +360,7 @@ KDPrisonTypes.DollStorage = {
 
 
 				let lostTrack = KDLostJailTrack(player);
-				if (lostTrack == "Unaware") {
+				if (KDNoInteractResults.includes(lostTrack)) {
 					return KDSetPrisonState(player, "Jail");
 				}
 
@@ -377,7 +381,64 @@ KDPrisonTypes.DollStorage = {
 						guard.gy = player.y;
 						KDUpdateMoveToEntity(guard);
 						KinkyDungeonSetEnemyFlag(guard, "wander", 30)
-						KinkyDungeonSetEnemyFlag(guard, "overrideMove", 10);
+						KinkyDungeonSetEnemyFlag(guard, "overrideMoveNoCom", 4);
+					}
+					if (KDGameData.PrisonerState == 'jail') {
+						KinkyDungeonSetEnemyFlag(guard, "notouchie", 2);
+					}
+				} else {
+					// forbidden state
+					return KDPopSubstate(player);
+				}
+
+				// Stay in the current state
+				return KDCurrentPrisonState(player);
+			},
+		},
+		UniformTravel: {name: "UniformTravel",
+			init: (params) => {
+				return "";
+			},
+			update: (delta) => {
+				let player = KinkyDungeonPlayerEntity;
+
+
+				let lostTrack = KDLostJailTrack(player);
+				if (KDNoInteractResults.includes(lostTrack)) {
+					return KDSetPrisonState(player, "Jail");
+				}
+
+				// End when the player is settled
+				let nj = KinkyDungeonNearestJailPoint(player.x, player.y, 
+					["furniture"], undefined, undefined, false);
+				let nj2 = KinkyDungeonNearestJailPoint(player.x, player.y, 
+					["furniture"], undefined, undefined, true);
+					
+				if (KDPrisonIsInFurniture(player)
+					&& (!nj2 || 
+					(nj.x == player.x && nj.y == player.y))) {
+					return KDPopSubstate(player);
+				}
+				// We are not in a furniture, so we conscript the guard
+				let guard = KDPrisonCommonGuard(player);
+				if (guard) {
+					// Uniform furniture (FutureBox) stays unlocked
+					KinkyDungeonSetFlag("NoFurnitureLock", 2);
+					// Assign the guard to a furniture intentaction
+					let action = (KDGameData.PrisonerState == 'jail' && !KinkyDungeonAggressive(guard, player)) ? "leashFurniture" : "leashFurnitureAggressive";
+					if (guard.IntentAction != action) {
+						KDIntentEvents[action].trigger(guard, {});
+						if (nj2) {
+							guard.IntentLeashPoint = nj2;
+						}
+					}
+					if (lostTrack) {
+						// Any qualifying factors means they know where you should be
+						guard.gx = player.x;
+						guard.gy = player.y;
+						KDUpdateMoveToEntity(guard);
+						KinkyDungeonSetEnemyFlag(guard, "wander", 30)
+						KinkyDungeonSetEnemyFlag(guard, "overrideMoveNoCom", 4);
 					}
 					if (KDGameData.PrisonerState == 'jail') {
 						KinkyDungeonSetEnemyFlag(guard, "notouchie", 2);
@@ -397,13 +458,23 @@ KDPrisonTypes.DollStorage = {
 			},
 			update: (delta) => {
 				let player = KinkyDungeonPlayerEntity;
-				let guard = KDPrisonCommonGuard(player);
+				let guard = KDPrisonCommonGuard(player, false, true);
 
-				if (KDPrisonIsInFurniture(player)) {
-					let action = "Follow";
-					if (guard.IntentAction != action)
-						KDIntentEvents[action].trigger(guard, {});
-					else guard.playWithPlayer = Math.max(guard.playWithPlayer, 3);
+				let nj = KinkyDungeonNearestJailPoint(player.x, player.y, ["furniture"], undefined, undefined, false);
+				let nj2 = KinkyDungeonNearestJailPoint(player.x, player.y, 
+					["furniture"], undefined, undefined, true);
+					
+				if (KDPrisonIsInFurniture(player)
+					&& (!nj2 || 
+					(nj.x == player.x && nj.y == player.y))) {
+					
+					guard = KDPrisonCommonGuard(player, false, true, KDPrisonUniformGuardCondition);
+					if (guard) {
+						let action = "Follow";
+						if (guard.IntentAction != action)
+							KDIntentEvents[action].trigger(guard, {});
+						else guard.playWithPlayer = Math.max(guard.playWithPlayer, 3);
+					}
 					let uniformCheck = KDPrisonGetGroups(player, ["cyborg"], "Cyber", KDCYBERPOWER);
 					if (uniformCheck.groupsToStrip.length > 0 && !KinkyDungeonFlags.get("failStrip")) {
 						// Create a queue
@@ -417,7 +488,7 @@ KDPrisonTypes.DollStorage = {
 					return KDPopSubstate(player);
 				}
 				// Otherwise go to travel state
-				return KDGoToSubState(player, "FurnitureTravel");
+				return KDGoToSubState(player, "UniformTravel");
 			},
 		},
 		UniformRemoveExtra: {name: "UniformRemoveExtra",
@@ -426,14 +497,23 @@ KDPrisonTypes.DollStorage = {
 			},
 			update: (delta) => {
 				let player = KinkyDungeonPlayerEntity;
-				let guard = KDPrisonCommonGuard(player);
+				let guard = KDPrisonCommonGuard(player, false, true, KDPrisonUniformGuardCondition);
 
-				if (guard && KDPrisonIsInFurniture(player)) {
+				// Wait for a guard who can do the uniforming
+				if (!guard && KDPrisonIsInFurniture(player)) return KDCurrentPrisonState(player);
+				let nj = KinkyDungeonNearestJailPoint(player.x, player.y, ["furniture"], undefined, undefined, false);
+				
+				let nj2 = KinkyDungeonNearestJailPoint(player.x, player.y, 
+					["furniture"], undefined, undefined, true);
+					
+				if (guard && KDPrisonIsInFurniture(player)
+					&& (!nj2 || 
+					(nj.x == player.x && nj.y == player.y))) {
 					let action = "Follow";
 					if (guard.IntentAction != action)
 						KDIntentEvents[action].trigger(guard, {});
 					else guard.playWithPlayer = Math.max(guard.playWithPlayer, 3);
-					KinkyDungeonSetEnemyFlag(guard, "overrideMove", 2);
+					KinkyDungeonSetEnemyFlag(guard, "overrideMoveNoCom", 2);
 					if (KDistChebyshev(guard.x - player.x, guard.y - player.y) < 1.5) {
 						if (KDPrisonIsInFurniture(player)) {
 							// Remove one per turn
@@ -449,7 +529,7 @@ KDPrisonTypes.DollStorage = {
 				}
 
 				// Otherwise go to travel state
-				return KDGoToSubState(player, "FurnitureTravel");
+				return KDGoToSubState(player, "UniformTravel");
 			},
 		},
 		UniformApply: {name: "UniformApply",
@@ -458,15 +538,21 @@ KDPrisonTypes.DollStorage = {
 			},
 			update: (delta) => {
 				let player = KinkyDungeonPlayerEntity;
-				let guard = KDPrisonCommonGuard(player);
+				let guard = KDPrisonCommonGuard(player, false, true, KDPrisonUniformGuardCondition);
 
-				if (KDPrisonIsInFurniture(player)) {
+				let nj = KinkyDungeonNearestJailPoint(player.x, player.y, ["furniture"], undefined, undefined, false);
+				let nj2 = KinkyDungeonNearestJailPoint(player.x, player.y, 
+					["furniture"], undefined, undefined, true);
+					
+				if (KDPrisonIsInFurniture(player)
+					&& (!nj2 || 
+					(nj.x == player.x && nj.y == player.y))) {
 					if (guard) {
 						let action = "Follow";
 						if (guard.IntentAction != action)
 							KDIntentEvents[action].trigger(guard, {});
 						else guard.playWithPlayer = Math.max(guard.playWithPlayer, 3);
-						KinkyDungeonSetEnemyFlag(guard, "overrideMove", 2);
+						KinkyDungeonSetEnemyFlag(guard, "overrideMoveNoCom", 2);
 						if (KDistChebyshev(guard.x - player.x, guard.y - player.y) < 1.5) {
 
 							let lockType = "Cyber";
@@ -478,7 +564,7 @@ KDPrisonTypes.DollStorage = {
 					}
 				}
 				// Otherwise go to travel state
-				return KDGoToSubState(player, "FurnitureTravel");
+				return KDGoToSubState(player, "UniformTravel");
 			},
 		},
 		Storage: {name: "Storage",
@@ -497,7 +583,9 @@ KDPrisonTypes.DollStorage = {
 
 				if (KDPrisonIsInFurniture(player)) {
 					let uniformCheck = KDPrisonGetGroups(player, ["cyborg"], "Cyber", KDCYBERPOWER);
-					if (uniformCheck.itemsToApply.length > 0) {
+					if (uniformCheck.itemsToApply.length > 0
+						|| (Object.keys(uniformCheck.itemsToStrip).length > 0 && !KinkyDungeonFlags.get("didUniformStrip"))) {
+						KinkyDungeonSetFlag("didUniformStrip", 100, -1);
 						return KDGoToSubState(player, "Uniform");
 					}
 
@@ -606,13 +694,16 @@ KDPrisonTypes.DollStorage = {
 
 						for (let xx of [label.x + 3, label.x - 3]) {
 							let e = DialogueCreateEnemy(xx, label.y, "LatexSprayer");
-							e.faction = "Ambush";
+							KinkyDungeonPlaySoundLocation(KinkyDungeonRootDirectory + "HydraulicUnlock.ogg", KDPlayer(), {
+								x: xx, y: label.y
+							}, 1.0, true);
+							e.faction = "Training";
 							e.vp = 2;
 							e.aware = true;
 							e.hostile = KinkyDungeonFlags.get("latexTraining");
 							e.summoned = false; // They can drop loot
 							KinkyDungeonSetEnemyFlag(e, "noignore", KinkyDungeonFlags.get("latexTraining"));
-							KinkyDungeonApplyBuffToEntity(e, KDTrainingUnit); // Training unit
+							KDApplyBuffToEntity(e, KDTrainingUnit); // Training unit
 						}
 
 						//Create training doors
@@ -633,7 +724,7 @@ KDPrisonTypes.DollStorage = {
 					// TODO progress training
 					let enemiesNear = KDNearbyEnemies(label.x, label.y, rad+2);
 					for (let en of enemiesNear) {
-						if (en.faction != "Ambush" && KDGetFaction(en) != "Player") {
+						if (en.faction != "Training" && KDGetFaction(en) != "Player") {
 							if (!KDEnemyHasFlag(en, "trainingLeave")) {
 								KDWanderEnemy(en);
 								KinkyDungeonSetEnemyFlag(en, "trainingLeave", 10);
@@ -659,7 +750,7 @@ KDPrisonTypes.DollStorage = {
 				let player = KinkyDungeonPlayerEntity;
 
 				let lostTrack = KDLostJailTrack(player);
-				if (lostTrack == "Unaware") {
+				if (KDNoInteractResults.includes(lostTrack)) {
 					return KDSetPrisonState(player, "Jail");
 				}
 
@@ -683,7 +774,7 @@ KDPrisonTypes.DollStorage = {
 							guard.gy = player.y;
 							KDUpdateMoveToEntity(guard);
 							KinkyDungeonSetEnemyFlag(guard, "wander", 30)
-							KinkyDungeonSetEnemyFlag(guard, "overrideMove", 10);
+							KinkyDungeonSetEnemyFlag(guard, "overrideMoveNoCom", 4);
 						}
 
 						if (KinkyDungeonLeashingEnemy() == guard) {
@@ -720,7 +811,7 @@ KDPrisonTypes.DollStorage = {
 				let rad = 3;
 
 				let lostTrack = KDLostJailTrack(player);
-				if (lostTrack == "Unaware") {
+				if (KDNoInteractResults.includes(lostTrack)) {
 					return KDSetPrisonState(player, "Jail");
 				}
 
@@ -743,7 +834,7 @@ KDPrisonTypes.DollStorage = {
 							guard.gy = player.y;
 							KDUpdateMoveToEntity(guard);
 							KinkyDungeonSetEnemyFlag(guard, "wander", 30)
-							KinkyDungeonSetEnemyFlag(guard, "overrideMove", 10);
+							KinkyDungeonSetEnemyFlag(guard, "overrideMoveNoCom", 4);
 						}
 						if (KinkyDungeonLeashingEnemy() == guard) {
 							// Make the guard focus on leashing more strongly, not attacking or pickpocketing
@@ -766,3 +857,11 @@ KDPrisonTypes.DollStorage = {
 		},
 	},
 };
+
+
+/** Robots wont do the dressing */
+function KDPrisonUniformGuardCondition(en: entity): boolean {
+	return KDPrisonGuardCondition(en)
+		&& (!en.Enemy?.tags?.robot || KDNonRobotRobot(en))
+		&& !en.Enemy?.tags?.drone;
+}

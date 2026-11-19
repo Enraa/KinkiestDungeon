@@ -5,472 +5,6 @@
  * In general, this is accomplished by having higher priority items cover more of the original
  */
 
-
-AddModel({
-	Name: "CatsuitLower",
-	TopLevel: false,
-	Categories: ["Suits"],
-	Folder: "Catsuit",
-	Parent: "Catsuit",
-	Layers: ToLayerMap([
-		{ Name: "TorsoLower", Layer: "TorsoLower", Pri: 1,
-			InheritColor: "TorsoLower",
-			MorphPoses: {Closed: "Closed", Spread: "Spread", Hogtie: "Closed", Kneel: "Kneel", KneelClosed: "Kneel"},
-		},
-		{ Name: "FootRight", Layer: "FootRight", Pri: 1,
-			InheritColor: "TorsoLower",
-			Poses: ToMap(FOOTRIGHTPOSES),
-		},
-		{ Name: "FootRightKneel", Layer: "FootRightKneel", Pri: 1,
-			InheritColor: "TorsoLower",
-			HidePoses: ToMap(["FeetLinked"]),
-			Poses: ToMap(["Kneel"]),
-			MorphPoses: {Kneel: ""},
-		},
-		{ Name: "FootLeft", Layer: "FootLeft", Pri: 1,
-			InheritColor: "TorsoLower",
-			Poses: ToMap(FOOTLEFTPOSES),
-			GlobalDefaultOverride: ToMap(["Hogtie", "KneelClosed"]),
-		},
-		{ Name: "FootLeftHogtie", Layer: "FootLeftHogtie", Pri: 1,
-			InheritColor: "TorsoLower",
-			Poses: ToMap(["Hogtie"]),
-			MorphPoses: {Hogtie: ""},
-		},
-		{ Name: "LegRight", Layer: "LegRight", Pri: 1,
-			InheritColor: "TorsoLower",
-			Poses: ToMap(LEGPOSES),
-			GlobalDefaultOverride: ToMap(["Hogtie", "KneelClosed"]),
-		},
-		{ Name: "LegLeft", Layer: "LegLeft", Pri: 1,
-			InheritColor: "TorsoLower",
-			Poses: ToMap(LEGPOSES),
-			GlobalDefaultOverride: ToMap(["Hogtie", "KneelClosed"]),
-		},
-		{ Name: "Butt", Layer: "Butt", Pri: 1,
-			InheritColor: "TorsoLower",
-			Poses: ToMap(KNEELPOSES),
-		},
-	])
-});
-
-AddModel({
-	Name: "CatsuitLowerLowRise",
-	TopLevel: false,
-	Categories: ["Suits"],
-	Folder: "Catsuit",
-	Parent: "Catsuit",
-	Layers: ToLayerMap([
-		{ Name: "TorsoLowerLowRise", Layer: "TorsoLower", Pri: 1,
-			InheritColor: "TorsoLower",
-			MorphPoses: {Closed: "Closed", Spread: "Spread", Hogtie: "Closed", Kneel: "Kneel", KneelClosed: "Kneel"},
-		},
-		{ Name: "FootRight", Layer: "FootRight", Pri: 1,
-			InheritColor: "TorsoLower",
-			Poses: ToMap(FOOTRIGHTPOSES),
-		},
-		{ Name: "FootRightKneel", Layer: "FootRightKneel", Pri: 1,
-			InheritColor: "TorsoLower",
-			HidePoses: ToMap(["FeetLinked"]),
-			Poses: ToMap(["Kneel"]),
-			MorphPoses: {Kneel: ""},
-		},
-		{ Name: "FootLeft", Layer: "FootLeft", Pri: 1,
-			InheritColor: "TorsoLower",
-			Poses: ToMap(FOOTLEFTPOSES),
-			GlobalDefaultOverride: ToMap(["Hogtie", "KneelClosed"]),
-		},
-		{ Name: "FootLeftHogtie", Layer: "FootLeftHogtie", Pri: 1,
-			InheritColor: "TorsoLower",
-			Poses: ToMap(["Hogtie"]),
-			MorphPoses: {Hogtie: ""},
-		},
-		{ Name: "LegRight", Layer: "LegRight", Pri: 1,
-			InheritColor: "TorsoLower",
-			Poses: ToMap(LEGPOSES),
-			GlobalDefaultOverride: ToMap(["Hogtie", "KneelClosed"]),
-		},
-		{ Name: "LegLeft", Layer: "LegLeft", Pri: 1,
-			InheritColor: "TorsoLower",
-			Poses: ToMap(LEGPOSES),
-			GlobalDefaultOverride: ToMap(["Hogtie", "KneelClosed"]),
-		},
-		{ Name: "Butt", Layer: "Butt", Pri: 1,
-			InheritColor: "TorsoLower",
-			Poses: ToMap(KNEELPOSES),
-		},
-	])
-});
-AddModel({
-	Name: "CatsuitLowerLeotard",
-	TopLevel: true,
-	Categories: ["Suits", "Underwear", "Panties"],
-	Folder: "Catsuit",
-	Parent: "Catsuit",
-	Layers: ToLayerMap([
-		{ Name: "TorsoLowerLeotard", Layer: "Bodysuit", Pri: -20,
-			InheritColor: "Latex",
-		},
-	])
-});
-
-AddModel({
-	Name: "CatsuitUpper",
-	TopLevel: false,
-	Parent: "Catsuit",
-	Categories: ["Suits"],
-	Folder: "Catsuit",
-	AddPose: ["HideNipples"],
-	Layers: ToLayerMap([
-		{ Name: "ArmRight", Layer: "ArmRight", Pri: 1,
-			InheritColor: "TorsoUpper",
-			Poses: ToMapSubtract(ARMPOSES, [...HIDEARMPOSES], "Hogtie"),
-			GlobalDefaultOverride: ToMap(["Hogtie", "Front", "Crossed"]),
-			//AppendPose: ToMapDupe(["Hogtie"]),
-			//AppendPoseRequire: ToMap(["Wristtie"]),
-		},
-		{ Name: "ArmLeft", Layer: "ArmLeft", Pri: 1,
-			InheritColor: "TorsoUpper",
-			Poses: ToMapSubtract(ARMPOSES, [...HIDEARMPOSES], "Hogtie"),
-			GlobalDefaultOverride: ToMap(["Hogtie", "Front", "Crossed"]),
-			ErasePoses: ["HideHands"],
-			EraseLayers: {RightHand: true},
-			EraseSprite: "HideBoxtieHand",
-			EraseInvariant: true,
-			//AppendPose: ToMapDupe(["Hogtie"]),
-			//AppendPoseRequire: ToMap(["Wristtie"]),
-		},/*
-		{ Name: "ShoulderRight", Layer: "ShoulderRight", Pri: 0,
-			InheritColor: "TorsoUpper",
-			Poses: ToMap([...SHOULDERPOSES]),
-		},
-		{ Name: "ShoulderLeft", Layer: "ShoulderLeft", Pri: 0,
-			InheritColor: "TorsoUpper",
-			Poses: ToMap([...SHOULDERPOSES]),
-		},*/
-
-		{ Name: "ForeArmRight", Layer: "ForeArmRight", Pri: 1,
-			InheritColor: "TorsoUpper",
-			Poses: ToMap(FOREARMPOSES),
-			GlobalDefaultOverride: ToMap(["Front", "Crossed"]),
-			SwapLayerPose: {Crossed: "CrossArmRight"},
-		},
-		{ Name: "ForeArmLeft", Layer: "ForeArmLeft", Pri: 1,
-			InheritColor: "TorsoUpper",
-			Poses: ToMap(FOREARMPOSES),
-			GlobalDefaultOverride: ToMap(["Front", "Crossed"]),
-			SwapLayerPose: {Crossed: "CrossArmLeft"},
-		},
-		{ Name: "HandRight", Layer: "HandRight", Pri: 1,
-			InheritColor: "TorsoUpper",
-			Poses: ToMap(HANDRIGHTPOSES),
-			GlobalDefaultOverride: ToMap(["Front"]),
-			HidePoses: ToMap(["HideHands", "EncaseHandRight"]),
-		},
-		{ Name: "HandLeft", Layer: "HandLeft", Pri: 1,
-			InheritColor: "TorsoUpper",
-			Poses: ToMap(HANDLEFTPOSES),
-			GlobalDefaultOverride: ToMap(["Front"]),
-			HidePoses: ToMap(["HideHands", "EncaseHandLeft"]),
-		},
-		{ Name: "ForeHandRight", Layer: "ForeHandRight", Pri: 1,
-			Sprite: "HandRight",
-			InheritColor: "TorsoUpper",
-			Poses: ToMap(FOREHANDRIGHTPOSES),
-			GlobalDefaultOverride: ToMap(["Front"]),
-			HidePoses: ToMap(["HideHands", "EncaseHandRight"]),
-		},
-		{ Name: "ForeHandLeft", Layer: "ForeHandLeft", Pri: 1,
-			Sprite: "HandLeft",
-			InheritColor: "TorsoUpper",
-			Poses: ToMap(FOREHANDLEFTPOSES),
-			GlobalDefaultOverride: ToMap(["Front"]),
-			HidePoses: ToMap(["HideHands", "EncaseHandLeft"]),
-		},
-		{ Name: "TorsoUpper", Layer: "TorsoUpper", Pri: 1,
-			InheritColor: "TorsoUpper",
-			AppendPose: {Up: "Up"},
-		},
-		{ Name: "Chest", Layer: "CatsuitChest", Pri: 1,
-			InheritColor: "TorsoUpper",
-			//GlobalDefaultOverride: ToMap(["Hogtie"]),
-		},
-
-	])
-});
-AddModel({
-	Name: "SleevelessCatsuitUpper",
-	TopLevel: false,
-	Parent: "Catsuit",
-	Categories: ["Suits"],
-	Folder: "Catsuit",
-	AddPose: ["HideNipples"],
-	Layers: ToLayerMap([
-		{ Name: "SleevelessTorsoUpper", Layer: "TorsoUpper", Pri: 1,
-			InheritColor: "TorsoUpper",
-		},
-		{ Name: "Chest", Layer: "CatsuitChest", Pri: 1,
-			InheritColor: "TorsoUpper",
-			//GlobalDefaultOverride: ToMap(["Hogtie"]),
-		},
-
-	])
-});
-
-
-AddModel({
-	Name: "CatsuitTop",
-	TopLevel: true,
-	Parent: "Catsuit",
-	Categories: ["Suits", "Tops", "Bras"],
-	Folder: "Catsuit",
-	Layers: ToLayerMap([
-		{ Name: "SleevelessTop", Layer: "Bodysuit", Pri: -4,
-			InheritColor: "Latex",
-		},
-		{ Name: "SleevelessTopChest", Layer: "SuitChest", Pri: -4,
-			InheritColor: "Latex",
-		},
-
-	])
-});
-AddModel({
-	Name: "CatsuitTopV",
-	TopLevel: true,
-	Parent: "Catsuit",
-	Categories: ["Suits", "Tops", "Bras"],
-	Folder: "Catsuit",
-	Layers: ToLayerMap([
-		{ Name: "SleevelessTopV", Layer: "Bodysuit", Pri: -3.5,
-			InheritColor: "Latex",
-		},
-		{ Name: "SleevelessTopVChest", Layer: "SuitChest", Pri: -3.5,
-			InheritColor: "Latex",
-		},
-
-	])
-});
-
-AddModel({
-	Name: "CatsuitUpperCropped",
-	TopLevel: false,
-	Parent: "Catsuit",
-	Categories: ["Suits"],
-	Folder: "Catsuit",
-	AddPose: ["HideNipples"],
-	Layers: ToLayerMap([
-		{ Name: "ArmRight", Layer: "ArmRight", Pri: 1,
-			InheritColor: "TorsoUpper",
-			Poses: ToMapSubtract(ARMPOSES, [...HIDEARMPOSES], "Hogtie"),
-			GlobalDefaultOverride: ToMap(["Hogtie", "Front", "Crossed"]),
-			//AppendPose: ToMapDupe(["Hogtie"]),
-			//AppendPoseRequire: ToMap(["Wristtie"]),
-		},
-		{ Name: "ArmLeft", Layer: "ArmLeft", Pri: 1,
-			InheritColor: "TorsoUpper",
-			Poses: ToMapSubtract(ARMPOSES, [...HIDEARMPOSES], "Hogtie"),
-			GlobalDefaultOverride: ToMap(["Hogtie", "Front", "Crossed"]),
-			ErasePoses: ["HideHands"],
-			EraseLayers: {RightHand: true},
-			EraseSprite: "HideBoxtieHand",
-			EraseInvariant: true,
-			//AppendPose: ToMapDupe(["Hogtie"]),
-			//AppendPoseRequire: ToMap(["Wristtie"]),
-		},/*
-		{ Name: "ShoulderRight", Layer: "ShoulderRight", Pri: 0,
-			InheritColor: "TorsoUpper",
-			Poses: ToMap([...SHOULDERPOSES]),
-		},
-		{ Name: "ShoulderLeft", Layer: "ShoulderLeft", Pri: 0,
-			InheritColor: "TorsoUpper",
-			Poses: ToMap([...SHOULDERPOSES]),
-		},*/
-
-		{ Name: "ForeArmRight", Layer: "ForeArmRight", Pri: 1,
-			InheritColor: "TorsoUpper",
-			Poses: ToMap(FOREARMPOSES),
-			GlobalDefaultOverride: ToMap(["Front", "Crossed"]),
-			SwapLayerPose: {Crossed: "CrossArmRight"},
-		},
-		{ Name: "ForeArmLeft", Layer: "ForeArmLeft", Pri: 1,
-			InheritColor: "TorsoUpper",
-			Poses: ToMap(FOREARMPOSES),
-			GlobalDefaultOverride: ToMap(["Front", "Crossed"]),
-			SwapLayerPose: {Crossed: "CrossArmLeft"},
-		},
-		{ Name: "HandRight", Layer: "HandRight", Pri: 1,
-			InheritColor: "TorsoUpper",
-			Poses: ToMap(HANDRIGHTPOSES),
-			GlobalDefaultOverride: ToMap(["Front"]),
-			HidePoses: ToMap(["HideHands", "EncaseHandRight"]),
-		},
-		{ Name: "HandLeft", Layer: "HandLeft", Pri: 1,
-			InheritColor: "TorsoUpper",
-			Poses: ToMap(HANDLEFTPOSES),
-			GlobalDefaultOverride: ToMap(["Front"]),
-			HidePoses: ToMap(["HideHands", "EncaseHandLeft"]),
-		},
-		{ Name: "ForeHandRight", Layer: "ForeHandRight", Pri: 1,
-			Sprite: "HandRight",
-			InheritColor: "TorsoUpper",
-			Poses: ToMap(FOREHANDRIGHTPOSES),
-			GlobalDefaultOverride: ToMap(["Front"]),
-			HidePoses: ToMap(["HideHands", "EncaseHandRight"]),
-		},
-		{ Name: "ForeHandLeft", Layer: "ForeHandLeft", Pri: 1,
-			Sprite: "HandLeft",
-			InheritColor: "TorsoUpper",
-			Poses: ToMap(FOREHANDLEFTPOSES),
-			GlobalDefaultOverride: ToMap(["Front"]),
-			HidePoses: ToMap(["HideHands", "EncaseHandLeft"]),
-		},
-		{ Name: "TorsoUpperCrop", Layer: "TorsoUpper", Pri: 1,
-			InheritColor: "TorsoUpper",
-			AppendPose: {Up: "Up"},
-		},
-		{ Name: "Chest", Layer: "CatsuitChest", Pri: 1,
-			InheritColor: "TorsoUpper",
-			//GlobalDefaultOverride: ToMap(["Hogtie"]),
-		},
-
-	])
-});
-
-
-AddModel({
-	Name: "Catsuit",
-	TopLevel: true,
-	Categories: ["Suits"],
-	Folder: "Catsuit",
-	Group: "Catsuit",
-	AddPose: ["HideNipples"],
-	Layers: ToLayerMap([
-		...GetModelLayers("CatsuitUpper"),
-		...GetModelLayers("CatsuitLower"),
-	])
-});
-
-AddModel({
-	Name: "CatsuitRestraint",
-	TopLevel: true,
-	Categories: ["Suits"],
-	Folder: "Catsuit",
-	Group: "Catsuit",
-	AddPose: ["HideNipples"],
-	Layers: ToLayerMap([
-		...GetModelLayers("CatsuitUpper", undefined, undefined, undefined, 0.1),
-		...GetModelLayers("CatsuitLower", undefined, undefined, undefined, 0.1),
-	])
-});
-
-
-
-
-AddModel({
-	Name: "TransparentCatsuitUpper",
-	TopLevel: false,
-	Parent: "TransparentCatsuit",
-	Categories: ["Suits"],
-	Folder: "Catsuit",
-	Filters: {
-		TorsoUpper: {"gamma":1,"saturation":1,"contrast":1,"brightness":1,"red":1,"green":1,"blue":1,"alpha":0.5333333333333333},
-		TorsoLower: {"gamma":1,"saturation":1,"contrast":1,"brightness":1,"red":1,"green":1,"blue":1,"alpha":0.5333333333333333},
-	},
-	Layers: ToLayerMap([
-		...GetModelLayersNoOverrideCB("CatsuitUpper", (layer) => {
-			if (layer.Name == "Chest" || layer.Name == "TorsoUpper") {
-				layer.Sprite = "Trans" + layer.Name;
-			}
-		}),
-	]),
-});
-AddModel({
-	Name: "TransparentCatsuitUpperCropped",
-	TopLevel: false,
-	Parent: "TransparentCatsuit",
-	Categories: ["Suits"],
-	Folder: "Catsuit",
-	Filters: {
-		TorsoUpper: {"gamma":1,"saturation":1,"contrast":1,"brightness":1,"red":1,"green":1,"blue":1,"alpha":0.5333333333333333},
-		TorsoLower: {"gamma":1,"saturation":1,"contrast":1,"brightness":1,"red":1,"green":1,"blue":1,"alpha":0.5333333333333333},
-	},
-	Layers: ToLayerMap([
-		...GetModelLayersNoOverrideCB("CatsuitUpperCropped", (layer) => {
-			if (layer.Name == "Chest" || layer.Name == "TorsoUpper") {
-				layer.Sprite = "Trans" + layer.Name;
-			}
-		}),
-	]),
-});
-
-AddModel({
-	Name: "TransparentCatsuitLower",
-	TopLevel: false,
-	Parent: "TransparentCatsuit",
-	Categories: ["Suits"],
-	Folder: "Catsuit",
-	Filters: {
-		TorsoUpper: {"gamma":1,"saturation":1,"contrast":1,"brightness":1,"red":1,"green":1,"blue":1,"alpha":0.5333333333333333},
-		TorsoLower: {"gamma":1,"saturation":1,"contrast":1,"brightness":1,"red":1,"green":1,"blue":1,"alpha":0.5333333333333333},
-	},
-	Layers: ToLayerMap([
-		...GetModelLayersNoOverride("CatsuitLower"),
-	]),
-});
-
-
-AddModel({
-	Name: "TransparentCatsuitLowerLeotard",
-	TopLevel: true,
-	Categories: ["Suits", "Underwear", "Panties"],
-	Folder: "Catsuit",
-	Parent: "Catsuit",
-	Filters: {
-		TorsoUpper: {"gamma":1,"saturation":1,"contrast":1,"brightness":1,"red":1,"green":1,"blue":1,"alpha":0.5333333333333333},
-		TorsoLower: {"gamma":1,"saturation":1,"contrast":1,"brightness":1,"red":1,"green":1,"blue":1,"alpha":0.5333333333333333},
-	},
-	Layers: ToLayerMap([
-		{ Name: "TorsoLowerLeotard", Layer: "Bodysuit", Pri: -20,
-			InheritColor: "Latex",
-			//MorphPoses: {Closed: "Closed", Spread: "Spread", Hogtie: "Closed"},
-		},
-	])
-});
-
-AddModel({
-	Name: "TransparentCatsuitLowerLowRise",
-	TopLevel: false,
-	Parent: "TransparentCatsuit",
-	Categories: ["Suits"],
-	Folder: "Catsuit",
-	Filters: {
-		TorsoUpper: {"gamma":1,"saturation":1,"contrast":1,"brightness":1,"red":1,"green":1,"blue":1,"alpha":0.5333333333333333},
-		TorsoLower: {"gamma":1,"saturation":1,"contrast":1,"brightness":1,"red":1,"green":1,"blue":1,"alpha":0.5333333333333333},
-	},
-	Layers: ToLayerMap([
-		...GetModelLayersNoOverride("CatsuitLowerLowRise"),
-	]),
-});
-
-AddModel({
-	Name: "TransparentCatsuit",
-	TopLevel: true,
-	Categories: ["Suits"],
-	Folder: "Catsuit",
-	Group: "Catsuit",
-	Filters: {
-		TorsoUpper: {"gamma":1,"saturation":1,"contrast":1,"brightness":1,"red":1,"green":1,"blue":1,"alpha":0.5333333333333333},
-		TorsoLower: {"gamma":1,"saturation":1,"contrast":1,"brightness":1,"red":1,"green":1,"blue":1,"alpha":0.5333333333333333},
-	},
-	Layers: ToLayerMap([
-		...GetModelLayersNoOverrideCB("Catsuit", (layer) => {
-			if (layer.Name == "Chest" || layer.Name == "TorsoUpper") {
-				layer.Sprite = "Trans" + layer.Name;
-			}
-		}),
-	]),
-});
-
 AddModel({
 	Name: "Labcoat",
 	Folder: "Labcoat",
@@ -769,6 +303,9 @@ AddModel({
 			HidePoseConditional: [
 				["DynamicArmor", "TorsoArmor", "SuppressDynamic"],
 			],
+			EraseAmount: 100,
+			EraseSprite: "LaceChest", EraseInvariant: true,
+			EraseLayers: ToMap(["CorsetBra"]),
 		},
 	])
 });
@@ -788,6 +325,9 @@ AddModel({
 			HidePoseConditional: [
 				["DynamicArmor", "TorsoArmor", "SuppressDynamic"],
 			],
+			EraseAmount: 100,
+			EraseSprite: "LaceChest", EraseInvariant: true,
+			EraseLayers: ToMap(["CorsetBra"]),
 		},
 	])
 });
@@ -1225,6 +765,9 @@ AddModel({
 			InheritColor: "Blouse",
 			HidePrefixPose: ["Encase"],	HidePrefixPoseSuffix: ["TorsoUpper"],
 			Invariant: true,
+			EraseAmount: 100,
+			EraseSprite: "LaceChest", EraseInvariant: true,
+			EraseLayers: ToMap(["CorsetBra"]),
 		},
 	])
 });
@@ -1235,9 +778,17 @@ AddModel({
 	TopLevel: true,
 	Categories: ["Accessories"],
 	Layers: ToLayerMap([
-		{ Name: "Bow", Layer: "CollarAcc", Pri: 1,
-			Poses: ToMap([...ARMPOSES]),
+		{ Name: "Collar", Layer: "Collar", Pri: -4,
 			HideWhenOverridden: true,
+			Invariant: true,
+		},
+		{ Name: "Bow", Layer: "CollarAcc", Pri: 1,
+			HideWhenOverridden: true,
+			Invariant: true,
+		},
+		{ Name: "Bell", Layer: "CollarAcc", Pri: 1.1,
+			NoOverride: true,
+			TieToLayer: "Bow",
 			Invariant: true,
 		},
 	])
@@ -1260,6 +811,14 @@ AddModel({
 			DisplacementSprite: "CorsetSquish",
 			DisplacementInvariant: true,
 		},
+		{ Name: "Buttons", Layer: "Bustier", Pri: 25.1,
+			//SwapLayerPose: {Pants: "CorsetUnder"},
+			Poses: ToMap([...ARMPOSES]),
+			HideWhenOverridden: true,
+			NoOverride: true,
+			Invariant: true,
+			TieToLayer: "Corset"
+		},
 	])
 });
 AddModel({
@@ -1272,11 +831,16 @@ AddModel({
 		...GetModelLayers("MaidCorset"),
 		{ Name: "CorsetStraps", Layer: "Straps", Pri: 1,
 			Poses: ToMap([...ARMPOSES]),
+			InheritColor: "Straps",
 			MorphPoses: {Boxtie: "Boxtie", Wristtie: "Boxtie"},
 			Invariant: true,
 		},
 	])
 });
+
+
+AddModel(GetModelRestraintVersion("MaidCorsetFull", false),);
+AddModel(GetModelRestraintVersion("MaidCorset", false),);
 
 
 
@@ -1464,6 +1028,9 @@ AddModel({
 			MorphPoses: {Up: "Up"},
 			HidePrefixPose: ["Encase"],	HidePrefixPoseSuffix: ["TorsoUpper"],
 			Invariant: true,
+			EraseAmount: 100,
+			EraseSprite: "LaceChest", EraseInvariant: true,
+			EraseLayers: ToMap(["CorsetBra"]),
 		},
 	])
 });
@@ -1809,14 +1376,14 @@ AddModel({
 		{ Name: "BootRightKneel", Layer: "ShoeRightKneel", Pri: 1,
 			Poses: ToMap(["Kneel"]),
 			Invariant: true,
-			InheritColor: "ShoeRight",
+			InheritColor: "BootRight",
 			HidePrefixPose: ["Encase"],	HidePrefixPoseSuffix: ["Feet"],
 			HideWhenOverridden: true,
 		},
 		{ Name: "BootLeftHogtie", Layer: "ShoeLeftHogtie", Pri: 1,
 			Poses: ToMap(["Hogtie"]),
 			Invariant: true,
-			InheritColor: "ShoeLeft",
+			InheritColor: "BootLeft",
 			HidePrefixPose: ["Encase"],	HidePrefixPoseSuffix: ["Feet"],
 			HideWhenOverridden: true,
 		},
@@ -1838,6 +1405,9 @@ AddModel({
 			MorphPoses: {Yoked: "Yoked"},
 			HidePrefixPose: ["Encase"],	HidePrefixPoseSuffix: ["TorsoUpper"],
 			Invariant: true,
+			EraseAmount: 100,
+			EraseSprite: "LaceChest", EraseInvariant: true,
+			EraseLayers: ToMap(["CorsetBra"]),
 		},
 	])
 });
@@ -1858,6 +1428,9 @@ AddModel({
 			InheritColor: "Bustier",
 			HidePrefixPose: ["Encase"],	HidePrefixPoseSuffix: ["TorsoUpper"],
 			HideWhenOverridden: true,
+			EraseAmount: 100,
+			EraseSprite: "LaceChest", EraseInvariant: true,
+			EraseLayers: ToMap(["CorsetBra"]),
 		},
 		{ Name: "BustierChestRim", Layer: "ShirtChest", Pri: 15.1,
 			Invariant: true,
@@ -2332,6 +1905,33 @@ AddModel({
 			InheritColor: "Bra",
 			HidePrefixPose: ["Encase"],	HidePrefixPoseSuffix: ["TorsoUpper"],
 			HideWhenOverridden: true,
+			EraseAmount: 100,
+			EraseSprite: "LaceChest", EraseInvariant: true,
+			EraseLayers: ToMap(["CorsetBra"]),
+		},
+	])
+});
+
+AddModel({
+	Name: "TransparentRobeBra",
+	Folder: "Robes",
+	Parent: "Robes",
+	Parent2: ["RobeBra"],
+	TopLevel: false,
+	Categories: ["Tops"],
+	Filters: {
+		Bra: {"gamma":1,"saturation":1,"contrast":1,"brightness":1,"red":1,"green":1,"blue":1,"alpha":0.5333333333333333},
+	},
+	Layers: ToLayerMap([
+		{ Name: "Chest", Layer: "BraChest", Pri: 50,
+			Invariant: true,
+			InheritColor: "Bra",
+			Sprite: "Bra",
+			HidePrefixPose: ["Encase"],	HidePrefixPoseSuffix: ["TorsoUpper"],
+			HideWhenOverridden: true,
+			EraseAmount: 100,
+			EraseSprite: "LaceChest", EraseInvariant: true,
+			EraseLayers: ToMap(["CorsetBra"]),
 		},
 	])
 });

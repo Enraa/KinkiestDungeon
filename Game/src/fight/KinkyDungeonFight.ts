@@ -540,11 +540,11 @@ function KinkyDungeonAggro(Enemy: entity, Spell: spell, Attacker: entity, Factio
 				}
 			}
 		} else {
-			KinkyDungeonApplyBuffToEntity(Enemy, KDAdrenaline, {
+			KDApplyBuffToEntity(Enemy, KDAdrenaline, {
 				duration: 4,
 				power: 0.8,
 			});
-			KinkyDungeonApplyBuffToEntity(Enemy, KDAdrenaline2, {
+			KDApplyBuffToEntity(Enemy, KDAdrenaline2, {
 				duration: 2,
 				power: 0.5,
 			});
@@ -587,7 +587,7 @@ function KDPlayerBlockPenalty() {
 function KDRestraintBlockPenalty() {
 	if (KinkyDungeonFlags.get("ZeroResistance")) return 1000;
 	let RestraintBlockPenalty = .1 * KinkyDungeonSlowLevel;
-	if (KDGameData.KneelTurns > 0) RestraintBlockPenalty = Math.max(RestraintBlockPenalty, 0.5);
+	if (KDIsOnKnees(KDPlayer())) RestraintBlockPenalty = Math.max(RestraintBlockPenalty, 0.5);
 	if (KinkyDungeonIsArmsBound(false, true)) RestraintBlockPenalty += .25;
 	if (KinkyDungeonStatFreeze) RestraintBlockPenalty += 0.8;
 	if (KinkyDungeonStatBlind) RestraintBlockPenalty += 0.33;
@@ -726,7 +726,7 @@ function KinkyDungeonEvasion(Enemy: entity, IsSpell?: boolean, IsMagic?: boolean
 		return true;
 	}
 
-	if (Enemy) {
+	if (Enemy && hitChance > 0) {
 		// Increment the pity timer
 		KinkyDungeonEvasionPityModifier += KinkyDungeonEvasionPityModifierIncrementPercentage * hitChance;
 	}
@@ -1743,9 +1743,9 @@ function KinkyDungeonAttackEnemy(Enemy: entity, Damage: damageInfo, chance?: num
 	}
 	if (!KinkyDungeonPlayerDamage || !KinkyDungeonPlayerDamage.silent || !(KinkyDungeonGetBuffedStat(KinkyDungeonPlayerBuffs, "Silence") > 0)) {
 		if (Enemy && hp < Enemy.Enemy.maxhp) {
-			KinkyDungeonAlert = 4;
-		} else {
 			KinkyDungeonAlert = 2;
+		} else {
+			KinkyDungeonAlert = 1;
 		}
 	} else {
 		if (!KinkyDungeonGetBuffedStat(KinkyDungeonPlayerBuffs, "Silence") || KinkyDungeonGetBuffedStat(KinkyDungeonPlayerBuffs, "Silence") < 2) {
@@ -2443,7 +2443,7 @@ function KinkyDungeonBulletHit(b: KDBullet, born: number, outOfTime?: boolean, o
 							&& (!buff.noAlly || !b.bullet.faction || KDFactionRelation(b.bullet.faction, KDGetFaction(enemy)) < 0.5)
 							&& (!buff.onlyAlly || !b.bullet.faction || KDFactionRelation(b.bullet.faction, KDGetFaction(enemy)) >= 0.5)) {
 							if (!enemy.buffs) enemy.buffs = {};
-							KinkyDungeonApplyBuffToEntity(enemy, buff);
+							KDApplyBuffToEntity(enemy, buff);
 						}
 					}
 				}
@@ -2708,7 +2708,7 @@ function KinkyDungeonBulletHit(b: KDBullet, born: number, outOfTime?: boolean, o
 				enemy.hp = Math.min(enemy.hp + b.bullet.spell?.power, enemy.Enemy?.maxhp);
 				//KDDamageQueue.push({floater: `+${Math.round((enemy.hp - origHP) * 10)}`, Entity: enemy, Color: "#ffaa00", Time: 3});
 				if (b.bullet.faction == "Player" || KinkyDungeonVisionGet(enemy.x, enemy.y) > 0)
-					KinkyDungeonSendFloater(enemy, `+${Math.round((enemy.hp - origHP) * 10)}`, "#ffaa00", KDToggles.FastFloaters ? 1 : 3);
+					KinkyDungeonSendFloater(enemy, `+${Math.round((enemy.hp - origHP) * 10)}`, "#ffaa00", KDToggles.FastFloaters ? .5 : 1.7);
 				if (b.bullet.faction == "Player")
 					KDHealRepChange(enemy, enemy.hp - origHP);
 			}
@@ -3192,7 +3192,7 @@ function KDBulletAoECanHitEntity(bullet: KDBullet, enemy: entity): boolean {
 		return (bullet.reflected
 			|| KDEntityHasFlag(enemy, "takeFF")
 			|| (!bullet.bullet.spell || !bullet.bullet.faction
-				|| bullet.bullet.spell.friendlyfire
+				|| (bullet.bullet.spell.friendlyfire && !enemy.Enemy?.alwaysNoFF && enemy.id != bullet.source)
 				|| (!KDFactionFavorable(bullet.bullet.faction, enemy)
 					&& (!bullet.bullet.damage || bullet.bullet.damage.type != "heal"))
 				|| (!KDFactionHostile(bullet.bullet.faction, enemy) && (bullet.bullet.damage && bullet.bullet.damage.type == "heal"))
@@ -3223,7 +3223,7 @@ function KDBulletCanHitEntity(bullet: KDBullet, enemy: entity, inWarningOnly?: b
 		return (enemy.x == bullet.x && enemy.y == bullet.y) && (bullet.reflected || overrideCollide
 			|| KDEntityHasFlag(enemy, "takeFF")
 			|| (!bullet.bullet.spell || !bullet.bullet.faction
-				|| bullet.bullet.spell.friendlyfire
+				|| (bullet.bullet.spell.friendlyfire && !enemy.Enemy?.alwaysNoFF && enemy.id != bullet.source)
 				|| (!KDFactionFavorable(bullet.bullet.faction, enemy)
 					&& (!bullet.bullet.damage || bullet.bullet.damage.type != "heal"))
 				|| (!KDFactionHostile(bullet.bullet.faction, enemy) && (bullet.bullet.damage && bullet.bullet.damage.type == "heal"))
@@ -3690,7 +3690,7 @@ function KDHealRepChange(enemy: entity, amount: number) {
 	// De-aggro an enemy if you heal them to full
 	if (enemy.hostile && amount > 0) {
 		if (enemy.hp >= enemy.Enemy.maxhp - 0.5) {
-			enemy.hostile = 0;
+			KDResetAggro(enemy);
 		}
 	} else if ((!enemy.allied || enemy.allied <= 400) && amount > 0) {
 		// Befriend enemies if you save them
@@ -3716,7 +3716,7 @@ function KDApplyGenBuffs(entity: entity, buff: string, time: number) {
 		for (let b of buffs) {
 			let newBuff = Object.assign({}, b);
 			if (newBuff && time) newBuff.duration = time;
-			KinkyDungeonApplyBuffToEntity(entity, newBuff);
+			KDApplyBuffToEntity(entity, newBuff);
 		}
 	}
 }
@@ -3998,6 +3998,8 @@ function KDEntityBlocksExp(entity: entity): boolean {
 	return entity.Enemy?.tags?.bulwark || KDEntityBuffedStat(entity, "Bulwark") > 0;
 }
 
+let KDUpdateMapCache = true;
+
 function KDCrackTile(x: number, y: number, allowCrack: boolean, data: any) {
 	let origTile = KinkyDungeonMapGet(x, y);
 	KinkyDungeonSendEvent("beforeCrackTile", data);
@@ -4013,6 +4015,9 @@ function KDCrackTile(x: number, y: number, allowCrack: boolean, data: any) {
 			duration: 9999,
 		}, 0);
 		KinkyDungeonUpdateLightGrid = true;
+		KDUpdateMapCache = true;
+		KDRefreshFurnitureCriteriaCaches();
+		KDUpdateDoorNavMap();
 
 		KinkyDungeonSendEvent("crackTile", data);
 	}

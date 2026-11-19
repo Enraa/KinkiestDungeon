@@ -1,6 +1,6 @@
 "use strict";
 
-let KDFactionNoCollection = ["Ambush"];
+let KDFactionNoCollection = ["Ambush", "Training"];
 
 
 /**
@@ -368,6 +368,7 @@ let KDHiddenFactions = [
 	"KinkyConstruct",
 	"Boss",
 	"Ambush",
+	"Training",
 	"Rage",
 	"Ghost",
 	"Trap",
@@ -468,6 +469,7 @@ let KDPiousFactions = {
 let KinkyDungeonTooltipFactions = [
 	"Rebel",
 	"Ambush",
+	"Training",
 	"Delinquent",
 	"DubiousWitch",
 	"Extraplanar",
@@ -821,6 +823,12 @@ let KinkyDungeonFactionRelationsBase : Record<string, Record<string, number>> = 
 
 		Chase: -1,
 	},
+	"Training": {
+		Player: -1.0,
+		Jail: -0.25,
+
+		Chase: -1,
+	},
 	"Curse": {
 		Player: -1.0,
 		Jail: -1,
@@ -831,6 +839,8 @@ let KinkyDungeonFactionRelationsBase : Record<string, Record<string, number>> = 
 	},
 	"Jail": {
 		// Dummy faction, used for deciding if a faction will attack you as a prisoner
+		// -.25 means they respect you in cell but will take you if outside
+		// -1 means they will ignore jail status
 	},
 	"Slime": {
 		Jail: -1,

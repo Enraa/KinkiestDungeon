@@ -26,7 +26,7 @@ let OGVSupported = false;
 
 
 /** jfrancos Oggmented library, MIT license */
-const SILENCE_OGG_DATA_URI = 'Game/Audio/Null.ogg';
+const SILENCE_OGG_DATA_URI = 'Game/Null.ogg';
 
 class OggmentedAudioContext extends (window.AudioContext || window.webkitAudioContext) {
   constructor(options = {}) {
@@ -49,18 +49,33 @@ class OggmentedAudioContext extends (window.AudioContext || window.webkitAudioCo
         );
     });
   }
+ 
+  loadedOggmented = false;
 
-  // tries the wasm vorbis decoder first,
-  // falls back to the native implementation
+  // tries the native implementation first,
+  // if that fails, we use oggmented to load
+  // If safari, it always uses oggmented and we pray default works if that fails
   decodeAudioData(buffer, callback) {
     const decode = resolve => {
-      OggmentedWASM().then(oggmented => {
-        try {
-          oggmented.decodeOggData(buffer, resolve);
-        } catch {
-          super.decodeAudioData(buffer, resolve);
-        }
-      });
+      if (this.loadedOggmented) {
+        OggmentedWASM().then(oggmented => {
+          try {
+            oggmented.decodeOggData(buffer, resolve);
+          } catch {
+            console.log("error loading oggmented:");
+            console.log(buffer);
+            super.decodeAudioData(buffer, resolve)
+          }
+        });
+      } else {
+        super.decodeAudioData(buffer, resolve, () => {
+          OggmentedWASM().then(oggmented => {
+            console.log("error loading with webaudio:");
+            console.log(buffer);
+            oggmented.decodeOggData(buffer, resolve);
+          });
+        });
+      }
     };
 
     if (callback) {

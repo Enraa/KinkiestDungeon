@@ -16,6 +16,8 @@ let KinkyDungeonLoreScale = 1.5;
 let KinkyDungeonRepeatLoreChance = 0.4; // Chance you will find a duplicate piece of lore
 let KinkyDungeonGenericLoreChance = 0.33; // Chance you will find a generic note instead of a previous note
 
+let KDLoreTextSpace = 24;
+
 let KinkyDungeonNewLoreList: string[] = localStorage.getItem("kdnewLore") ? JSON.parse(localStorage.getItem("kdnewLore")) : ["Cover"];
 
 function KinkyDungeonNewLore() {
@@ -111,11 +113,14 @@ function KinkyDungeonUpdateTabs(exploredLore: Record<string, number>) {
 	}
 }
 
+let KDLoreWidth = 550*KinkyDungeonLoreScale - 30;
+let KDLoreHeight = 500*KinkyDungeonLoreScale;
+
 function KinkyDungeonDrawLore() {
 	let xOffset = -125;
 
-
-	let x = 1300;
+	let w = KDLoreWidth;
+	let h = KDLoreHeight;
 
 	if (KDToggles.SpellBook) {
 		KDTextTan = KDTextTanSB;
@@ -127,21 +132,21 @@ function KinkyDungeonDrawLore() {
 		FillRectKD(kdcanvas, kdpixisprites, "magicbook", {
 			Left: canvasOffsetX_ui,
 			Top: canvasOffsetY_ui- 20,
-			Width: 550*KinkyDungeonLoreScale - 30,
-			Height: 400*KinkyDungeonLoreScale,
+			Width: w,
+			Height: h,
 			Color: "#161920",
 			LineWidth: 1,
-			zIndex: -19,
+			zIndex: 19,
 			alpha: 1
 		});
 		DrawRectKD(kdcanvas, kdpixisprites, "magicbook2", {
 			Left: canvasOffsetX_ui,
 			Top: canvasOffsetY_ui - 20,
-			Width: 550*KinkyDungeonLoreScale - 30,
-			Height: 400*KinkyDungeonLoreScale,
+			Width: w,
+			Height: h,
 			Color: KDBorderColor,
 			LineWidth: 1,
-			zIndex: -19,
+			zIndex: 19,
 			alpha: 0.9
 		});
 	}
@@ -167,12 +172,18 @@ function KinkyDungeonDrawLore() {
 		i += 0.7;
 		let imgwidth = 200;
 		let images = KDLoreImg[KinkyDungeonCurrentLore].split(/\||\\n|\n/);
+		if (imgwidth * images.length > w) {
+			imgwidth = w / images.length;
+		}
 		for (let ii = 0; ii < images.length; ii++) {
 			KDDraw(kdcanvas, kdpixisprites, "kdlorimage" + ii,
 				KinkyDungeonRootDirectory + images[ii],
 				0.75 * 640*KinkyDungeonLoreScale * (0.525) + imgwidth * ii - (imgwidth/2 * (images.length))
 			+ canvasOffsetX_ui - 100 + 640*KinkyDungeonLoreScale/8, canvasOffsetY_ui - 100 + 483*KinkyDungeonLoreScale/6 + i * 40,
-				imgwidth, imgwidth, 0, undefined, undefined, undefined, undefined, true
+				imgwidth, imgwidth, 0, {
+					zIndex: 40,
+				}, undefined, 
+				undefined, undefined, true
 			);
 		}
 	}
@@ -367,7 +378,7 @@ function KinkyDungeonDrawLore() {
 		}
 
 		let extra = 5;
-		let YY = canvasOffsetY_ui - 20 + 400*KinkyDungeonLoreScale;
+		let YY = canvasOffsetY_ui - 20 + h;
 		TooltipList.forEach((listItem) => {
 			YY -= (extra + listItem.size);
 		});
@@ -377,14 +388,15 @@ function KinkyDungeonDrawLore() {
 				YY,
 				0.22 * 640*KinkyDungeonLoreScale,
 				listItem.fg, listItem.bg,
-				listItem.size, "left", 0);
+				listItem.size, "left", 40);
 			YY += extra + listItem.size;
 		}
 	}
-	i = KDLoreImg[KinkyDungeonCurrentLore] ? 6 : 2;
+	i = KDLoreImg[KinkyDungeonCurrentLore] ? 10 : 4;
 	for (let N = 0; N < lore.length; N++) {
 		DrawTextFitKD(lore[N],
-			canvasOffsetX_ui - 100 + 640*KinkyDungeonLoreScale/8, canvasOffsetY_ui - 100 + 483*KinkyDungeonLoreScale/6 + i * 40, 0.75 * 640*KinkyDungeonLoreScale, KDBookText, KDTextTan, 20, "left"); i++;}
+			canvasOffsetX_ui - 100 + 640*KinkyDungeonLoreScale/8, canvasOffsetY_ui - 100 + 483*KinkyDungeonLoreScale/6 + i * KDLoreTextSpace, 
+			0.75 * 640*KinkyDungeonLoreScale, KDBookText, KDTextTan, 20, "left"); i++;}
 
 	if (KinkyDungeonNewLoreList.includes(KinkyDungeonCurrentLore)) {
 		KinkyDungeonNewLoreList.splice(KinkyDungeonNewLoreList.indexOf(KinkyDungeonCurrentLore), 1);
@@ -392,90 +404,179 @@ function KinkyDungeonDrawLore() {
 	}
 
 
-	// Draw the tabs
-	let tabs = Object.values(KDLore);
-	let tabNames = Object.keys(KDLore);
-	let numTabs = 20;
-	for (i = 0; i < numTabs; i++) {
-		if (i + KinkyDungeonCurrentLoreTabOffset < tabs.length) {
-			let newLore = false;
-
-			for (let ll of KinkyDungeonNewLoreList) {
-				if ((i == -1 && KDLore.Default[ll]) || (i >= 0 && KDLore[tabNames[i + KinkyDungeonCurrentLoreTabOffset]][ll])) {
-					newLore = true;
-					break;
-				}
-			}
-
-			if (i == -1) {
-				DrawButtonKDEx("loretab" + i, (_b) => {
-					KinkyDungeonCurrentLoreTab = "Default";
-					KinkyDungeonUpdateLore(localStorage.getItem("kdexpLore") ? JSON.parse(localStorage.getItem("kdexpLore")) : {});
-					return true;
-				}, true, x + 300, 142 + i * 42, 230, 40, TextGet("KinkyDungeonCheckpointLore-1"),
-				"" == KinkyDungeonCurrentLoreTab ? KDBaseWhite : (newLore ? KDBaseMint : KDBaseWhite), undefined, undefined, undefined, KinkyDungeonCurrentLoreTab != "", KDButtonColor);
-			} else {
-				let index = i;
-				DrawButtonKDEx("loretab" + i, (_b) => {
-					if (tabNames[index + KinkyDungeonCurrentLoreTabOffset]) {
-						KinkyDungeonCurrentLoreTab = tabNames[index + KinkyDungeonCurrentLoreTabOffset];
-						KinkyDungeonUpdateLore(localStorage.getItem("kdexpLore") ? JSON.parse(localStorage.getItem("kdexpLore")) : {});
-					}
-					return true;
-				}, true, x + 300, 142 + i * 42, 230, 40, KinkyDungeonCurrentLoreTabs.includes(tabNames[i + KinkyDungeonCurrentLoreTabOffset]) ?
-					TextGet("KinkyDungeonCheckpointLore" + tabNames[i + KinkyDungeonCurrentLoreTabOffset]) :
-					TextGet("KinkyDungeonCheckpointLoreUnknown"),
-					tabNames[i + KinkyDungeonCurrentLoreTabOffset] == KinkyDungeonCurrentLoreTab ? KDBaseWhite : (newLore ? KDBaseMint :KDBaseWhite),
-					undefined, undefined, undefined, tabNames[i + KinkyDungeonCurrentLoreTabOffset] != KinkyDungeonCurrentLoreTab, KDButtonColor);
-			}
-
-		} else {
-			if (i + KinkyDungeonCurrentLoreTabOffset > tabs.length + 3)
-				KinkyDungeonCurrentLoreTabOffset = 0;
-			break;
-		}
-
-
-		DrawButtonKDEx("loreUp", (_b) => {
-			if (KinkyDungeonCurrentLoreTabOffset > 0) KinkyDungeonCurrentLoreTabOffset -= 3;
-			return true;
-		}, true, x + 370, 30, 90, 40, "", KinkyDungeonCurrentLoreTabOffset > 0 ? KDBaseWhite : "#888888", KinkyDungeonRootDirectory + "Up.png");
-		DrawButtonKDEx("loreDown", (_b) => {
-			if (numTabs + KinkyDungeonCurrentLoreTabOffset < KinkyDungeonCurrentLoreTabs.length) KinkyDungeonCurrentLoreTabOffset += 3;
-			return true;
-		}, true, x + 370, 930, 90, 40, "", numTabs + KinkyDungeonCurrentLoreTabOffset < KinkyDungeonCurrentLoreTabs.length ? KDBaseWhite : "#888888", KinkyDungeonRootDirectory + "Down.png");
-	}
-
-	let numNotes = 57;
-
-	// Draw the lore itself
-	DrawButtonKDEx("loreCurrentUp", (_b) => {
-		if (KinkyDungeonCurrentLoreItemOffset > 0) KinkyDungeonCurrentLoreItemOffset -= 3;
-		return true;
-	}, true, x + 100, 80, 90, 40, "", KinkyDungeonCurrentLoreItemOffset > 0 ? KDBaseWhite : "#888888", KinkyDungeonRootDirectory + "Up.png");
-	DrawButtonKDEx("loreCurrentDown", (_b) => {
-		if (numNotes + KinkyDungeonCurrentLoreItemOffset < KinkyDungeonCurrentLoreItems.length) KinkyDungeonCurrentLoreItemOffset += 3;
-		return true;
-	}, true, x + 100, 860, 90, 40, "", numNotes + KinkyDungeonCurrentLoreItemOffset < KinkyDungeonCurrentLoreItems.length ? KDBaseWhite : "#888888", KinkyDungeonRootDirectory + "Down.png");
-	for (i = 0; i < numNotes; i++) {
-		let ii = Math.floor(i / 2);
-		let xx = i % 2;
-		if (i + KinkyDungeonCurrentLoreItemOffset < KinkyDungeonCurrentLoreItems.length) {
-			let loreNum = KinkyDungeonCurrentLoreItems[i + KinkyDungeonCurrentLoreItemOffset];
-			DrawButtonKDEx("loreItem" + loreNum, (_b) => {
-				KinkyDungeonCurrentLore = loreNum;
-				return true;
-			}, true, x + 150 * xx, 142 + (ii) * 42, 145, 40, TextGet("KDLoreLabel" + loreNum),
-			loreNum == KinkyDungeonCurrentLore ? KDBaseWhite : (KinkyDungeonNewLoreList.includes(loreNum) ? KDBaseMint: KDBaseWhite),
-			undefined, undefined, undefined, loreNum != KinkyDungeonCurrentLore, KDButtonColor);
-		} else {
-			if (i + KinkyDungeonCurrentLoreItemOffset > KinkyDungeonCurrentLoreItems.length + 3)
-				KinkyDungeonCurrentLoreItemOffset = 0;
-			break;
-		}
-	}
+	KDDrawLoreTabs(xOffset, KDLoreTabsX, h);
 
 	KDDrawLoreRepTabs(xOffset);
+}
+
+let KDLoreTabsX = 1300;
+
+function KDDrawLoreTabs(xOffset: number, x: number, h: number) {
+	// Draw the tabs
+
+	KDDrawLoreList(x, 142, 200, h);
+	KDDrawLoreCategoryList(x + 210, 142, 240, h);
+
+	
+	
+	
+}
+
+let KDUpdateLore = true;
+
+function KDDrawLoreCategoryList(x: number, y: number, w: number, h: number) {
+	let tabNames = Object.keys(KDLore);
+
+
+
+	let listID = "KDLoreCategoryList";
+    let rowSize = 42;
+    let listX = x;
+    let listY = y;
+    let listW = w;
+    let listH = h;
+	if (KDUpdateLore || ShouldUpdateList(listID)) {
+		KDUpdateLore = false;
+		PopulateList(listID, 
+			listX, 
+		    listY, 
+			listW, listH, 50, 
+			Math.floor(listH / rowSize),
+			[...tabNames], false, false, 250
+		);
+	}
+    
+
+    let hotkeyUp = KinkyDungeonKey[5];
+    let hotkeyDown = KinkyDungeonKey[7];
+	//@ts-ignore
+	let drawn: string = KDDrawScrollableList(listID, true, (
+		container: PIXIContainer,
+		isClickable: boolean,
+		listItem: string,
+		listRow: number,
+		visualIndex: number,
+		isSelected: boolean,
+		selectedIndex: number,
+		list: KDScrollableListData)  => {
+
+		let i = visualIndex;
+        let newLore = false;
+
+		for (let ll of KinkyDungeonNewLoreList) {
+			if (KDLore[listItem][ll]) {
+				newLore = true;
+				break;
+			}
+		}
+
+		DrawButtonKDExTo(container, "loretab" + listItem, (_b) => {
+			if (listItem) {
+				KDUpdateLore = true;
+				KinkyDungeonCurrentLoreTab = listItem;
+				KinkyDungeonUpdateLore(localStorage.getItem("kdexpLore") ?
+					JSON.parse(localStorage.getItem("kdexpLore")) : {});
+
+				if (KinkyDungeonCurrentLoreItems?.length > 0) {
+					KinkyDungeonCurrentLore = KinkyDungeonCurrentLoreItems[0];
+				}
+			}
+			return true;
+		}, true, x, y + i * rowSize, w - 20, rowSize-2, 
+		KinkyDungeonCurrentLoreTabs.includes(listItem) ?
+			TextGet("KinkyDungeonCheckpointLore" + listItem) :
+			TextGet("KinkyDungeonCheckpointLoreUnknown"),
+			listItem == KinkyDungeonCurrentLoreTab ? KDBaseWhite : (newLore ? KDBaseMint :KDBaseWhite),
+			undefined, undefined, undefined, 
+			listItem != KinkyDungeonCurrentLoreTab,KDButtonColor);
+
+		return listItem == KinkyDungeonCurrentLoreTab;
+
+	}, undefined, false, 18, undefined, 
+    hotkeyUp, hotkeyDown, undefined, undefined, undefined, undefined, undefined,
+	undefined, undefined, undefined, (items, listItemTo, index, amount) => {
+		let listItem = items[Math.max(0, index + amount)];
+		if (listItem) {
+			KinkyDungeonCurrentLoreTab = listItem;
+			KDUpdateLore = true;
+			KinkyDungeonUpdateLore(localStorage.getItem("kdexpLore") ?
+				JSON.parse(localStorage.getItem("kdexpLore")) : {});
+			
+			if (KinkyDungeonCurrentLoreItems?.length > 0) {
+				KinkyDungeonCurrentLore = KinkyDungeonCurrentLoreItems[0];
+			}
+		}
+		return true;
+	});
+}
+
+function KDDrawLoreList(x: number, y: number, w: number, h: number) {
+
+	let tabNames = KinkyDungeonCurrentLoreItems;
+
+
+
+	let listID = "KDLoreItemList";
+    let rowSize = 42;
+    let listX = x;
+    let listY = y;
+    let listW = w;
+    let listH = h;
+	if (KDUpdateLore || ShouldUpdateList(listID)) {
+		KDUpdateLore = false;
+		PopulateList(listID, 
+			listX, 
+		    listY, 
+			listW, listH, 50, 
+			Math.floor(listH / rowSize),
+			[...tabNames], false, false, 250
+		);
+	}
+    
+
+    let hotkeyUp = KinkyDungeonKey[0];
+    let hotkeyDown = KinkyDungeonKey[2];
+	//@ts-ignore
+	let drawn: string = KDDrawScrollableList(listID, true, (
+		container: PIXIContainer,
+		isClickable: boolean,
+		listItem: string,
+		listRow: number,
+		visualIndex: number,
+		isSelected: boolean,
+		selectedIndex: number,
+		list: KDScrollableListData)  => {
+
+		let loreNum = listItem;
+
+		if (loreNum)
+
+			DrawButtonKDExTo(container, "loreItem" + loreNum, (_b) => {
+					KDUpdateLore = true;
+					KinkyDungeonCurrentLore = loreNum;
+					return true;
+				}, true, x, y + (visualIndex) * 42, w - 20, 40, 
+				TextGet("KDLoreLabel" + loreNum),
+				loreNum == KinkyDungeonCurrentLore ?
+					KDBaseWhite
+					: (KinkyDungeonNewLoreList.includes(loreNum) ? KDBaseMint: KDBaseWhite),
+				undefined, undefined, undefined, 
+				loreNum != KinkyDungeonCurrentLore, KDButtonColor);
+
+		return loreNum == KinkyDungeonCurrentLore;
+	}, undefined, false, 18, undefined, 
+    hotkeyUp, hotkeyDown, undefined, undefined, 
+	undefined, undefined, undefined,
+	undefined, undefined, undefined, (items, listItemTo, index, amount) => {
+		let listItem = items[Math.max(0, index + amount)];
+		if (listItem) {
+			KDUpdateLore = true;
+			KinkyDungeonCurrentLore = listItem;
+		}
+		return true;
+	});
+
+
 }
 
 function KDDrawLoreRepTabs(xOffset: number = -125) {
@@ -515,7 +616,7 @@ function KDDrawLoreRepTabs(xOffset: number = -125) {
 	let width = 1100 / num;
 	let II = 0;
 	DrawButtonKDExScroll("TabLore", scrollFunc, (_b) => {
-		KinkyDungeonDrawState = "Logbook";
+		KDGoToScreen("Logbook");
 		return true;
 	}, true, xxstart + II*width, yy, width - 10, 40, TextGet("KinkyDungeonLog"), KDBaseWhite, undefined, undefined, undefined,
 	KinkyDungeonDrawState != "Logbook", KDButtonColor, undefined, undefined,
@@ -524,7 +625,7 @@ function KDDrawLoreRepTabs(xOffset: number = -125) {
 		hotkeyPress: KinkyDungeonKeyTab[II],
 	}); II++;
 	DrawButtonKDExScroll("TabRep", scrollFunc, (_b) => {
-		KinkyDungeonDrawState = "Reputation";
+		KDGoToScreen("Reputation");
 		return true;
 	}, true, xxstart + II*width, yy, width - 10, 40, TextGet("KinkyDungeonReputation"), KDBaseWhite, undefined, undefined, undefined,
 	KinkyDungeonDrawState != "Reputation", KDButtonColor, undefined, undefined,
@@ -533,7 +634,7 @@ function KDDrawLoreRepTabs(xOffset: number = -125) {
 		hotkeyPress: KinkyDungeonKeyTab[II],
 	}); II++;
 	DrawButtonKDExScroll("TabQuest", scrollFunc, (_b) => {
-		KinkyDungeonDrawState = "Quest";
+		KDGoToScreen("Quest");
 		KDSortQuests(KDPlayer());
 		return true;
 	}, true, xxstart + II*width, yy, width - 10, 40, TextGet("KinkyDungeonQuest"), KDBaseWhite, undefined, undefined, undefined,
@@ -543,7 +644,7 @@ function KDDrawLoreRepTabs(xOffset: number = -125) {
 		hotkeyPress: KinkyDungeonKeyTab[II],
 	}); II++;
 	DrawButtonKDExScroll("TabJourneyMap", scrollFunc, (_b) => {
-		KinkyDungeonDrawState = "JourneyMap";
+		KDGoToScreen("JourneyMap");
 		KDGameData.UseJourneyTarget = false;
 		return true;
 	}, true, xxstart + II*width, yy, width - 10, 40, TextGet("KinkyDungeonJourneyMap"), KDBaseWhite, undefined, undefined, undefined,
@@ -554,7 +655,7 @@ function KDDrawLoreRepTabs(xOffset: number = -125) {
 	}); II++;
 	if (KDPlayerTitlesEnabled) {
 		DrawButtonKDExScroll("TabTitles", scrollFunc, (_b) => {
-			KinkyDungeonDrawState = "Titles";
+			KDGoToScreen("Titles");
 			return true;
 		}, true, xxstart + II * width, yy, width - 10, 40, TextGet("KDPlayerTitlesTabText"), KDBaseWhite, undefined, undefined, undefined, 
 		KinkyDungeonDrawState != "Titles", KDButtonColor, undefined, undefined,
@@ -564,12 +665,12 @@ function KDDrawLoreRepTabs(xOffset: number = -125) {
 	}); II++;
 	}
 	/*DrawButtonKDExScroll("TabCollection", scrollFunc, (b) => {
-		KinkyDungeonDrawState = "Collection";
+		KDGoToScreen("Collection");
 		return true;
 	}, true, xxstart + II*width, yy, width - 10, 40, TextGet("KinkyDungeonCollection"), KDBaseWhite, undefined, undefined, undefined,
 	KinkyDungeonDrawState != "Collection", KDButtonColor); II++;
 	DrawButtonKDExScroll("TabFacilities", scrollFunc, (b) => {
-		KinkyDungeonDrawState = "Facilities";
+		KDGoToScreen("Facilities");
 		return true;
 	}, true, xxstart + II*width, yy, width - 10, 40, TextGet("KinkyDungeonFacilities"), KDBaseWhite, undefined, undefined, undefined,
 	KinkyDungeonDrawState != "Facilities", KDButtonColor); II++;
@@ -626,7 +727,7 @@ function KDDrawInventoryTabs(xOffset: number, drawBG: boolean = true): void {
 		hotkeyPress: KinkyDungeonKeyTab[II],
 	}); II++;
 	DrawButtonKDExScroll("TabProgress", scrollFunc, (b) => {
-		KinkyDungeonDrawState = "Progress";
+		KDGoToScreen("Progress");
 		return true;
 	}, true, xxstart + II*width, yy, width - 10, 40, TextGet("KinkyDungeonProgress"), KDBaseWhite, undefined, undefined, undefined,
 	KinkyDungeonDrawState != "Progress", KDButtonColor, undefined, undefined,
@@ -677,11 +778,9 @@ function KDDrawCollectionTabs(xOffset: number, drawBG: boolean = true): void {
 
 
 	DrawButtonKDExScroll("TabCollection", scrollFunc, (_b) => {
-		KinkyDungeonDrawState = "Collection";
+		KDGoToScreen("Collection", true);
 		KDRefreshCharacter.set(KinkyDungeonPlayer, true);
-		KDCollectionTab = "";
-		KDCurrentFacilityTarget = "";
-		KDFacilityCollectionCallback = null;
+		KDResetCollectionScreen();
 		return true;
 	}, true, xxstart + II*width, yy, width - 10, 40, TextGet("KinkyDungeonCollection"), KDBaseWhite, undefined, undefined, undefined,
 	KinkyDungeonDrawState != "Collection", KDButtonColor, undefined, undefined,
@@ -690,7 +789,7 @@ function KDDrawCollectionTabs(xOffset: number, drawBG: boolean = true): void {
 		hotkeyPress: KinkyDungeonKeyTab[II],
 	}); II++;
 	DrawButtonKDExScroll("TabFacilities", scrollFunc, (b) => {
-		KinkyDungeonDrawState = "Facilities";
+		KDGoToScreen("Facilities", true);
 		return true;
 	}, true, xxstart + II*width, yy, width - 10, 40, TextGet("KinkyDungeonFacilities"), KDBaseWhite, undefined, undefined, undefined,
 	KinkyDungeonDrawState != "Facilities", KDButtonColor, undefined, undefined,
@@ -737,9 +836,9 @@ function KinkyDungeonHandleLore() {
  * @param [enemy]
  */
 function KDNewLore(tabs: string | string[], id: string, label: string, title: string, text: string, condition?: () => boolean, image?: string, noShow?: string[], enemy?: string) {
-	addTextKey("KDLoreText" + id, text);
-	addTextKey("KDLoreTitle" + id, title);
-	addTextKey("KDLoreLabel" + id, label);
+	addTextKeyCareful("KDLoreText" + id, text);
+	addTextKeyCareful("KDLoreTitle" + id, title);
+	addTextKeyCareful("KDLoreLabel" + id, label);
 
 	if (image) {
 		KDLoreImg[id] = image;

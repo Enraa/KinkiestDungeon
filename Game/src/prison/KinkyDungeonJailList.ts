@@ -4,14 +4,14 @@ let KDBaseJailTickSub = 0.5;
 let KDNumberOfJailRandoms = 4;
 let KDJailRandomTimer = 1000;
 
-let KDJailEvents: Record<string, {weight: (guard: any, xx: any, yy: any) => number, trigger: (guard: any, xx: any, yy: any) => void}> = {
+let KDJailEvents: Record<string, {weight: (guard: entity, xx: number, yy: number, ix: number, iy: number) => number, trigger: (guard: entity, xx: number, yy: number, ix: number, iy: number) => void}> = {
 	"spawnGuard": {
 		// Determines the weight
 		weight: (_guard, _xx, _yy) => {
 			return 70;
 		},
 		// Occurs when the jail event triggers
-		trigger: (_g, xx, yy) => {
+		trigger: (_g, xx, yy, ix, iy) => {
 			// Allow the player to sleep 150 turns after the guard shows up
 			if (KinkyDungeonFlags.get("slept") == -1) {
 				KinkyDungeonSetFlag("slept", 0);
@@ -35,8 +35,8 @@ let KDJailEvents: Record<string, {weight: (guard: any, xx: any, yy: any) => numb
 				id: KinkyDungeonGetEnemyID(),
 				x:xx,
 				y:yy,
-				gx: xx - 2,
-				gy: yy,
+				gx: ix,
+				gy: iy,
 				CurrentAction: "jailWander",
 				keys: true,
 				AI: KDGetAITypeOverride(Enemy, "guard") || "guard",
@@ -56,10 +56,10 @@ let KDJailEvents: Record<string, {weight: (guard: any, xx: any, yy: any) => numb
 					guard)
 			} else if (!KinkyDungeonFlags.get("JailIntro")) {
 				KinkyDungeonSetFlag("JailIntro", -1);
-				KDStartDialog("PrisonIntro", guard.Enemy.name, true, "");
+				KDStartDialog("PrisonIntro", guard.Enemy.name, true, "", guard);
 			} else if (KinkyDungeonFlags.get("JailRepeat")) {
 				KinkyDungeonSetFlag("JailRepeat",  0);
-				KDStartDialog("PrisonRepeat", guard.Enemy.name, true, "");
+				KDStartDialog("PrisonRepeat", guard.Enemy.name, true, "", guard);
 			}
 
 			if (KinkyDungeonPlayerInCell(true))
@@ -163,9 +163,9 @@ function KDCanSpawnShopkeeper(override?: boolean): boolean {
 }
 
 
-type guardAction_num  = (guard: entity, xx: number, yy: number) => number;
-type guardAction_bool = (guard: entity, xx: number, yy: number) => boolean;
-type guardAction_void = (guard: entity, xx: number, yy: number, delta: number) => void;
+type guardAction_num  = (guard: entity, xx: number, yy: number, ix: number, iy: number) => number;
+type guardAction_bool = (guard: entity, xx: number, yy: number, ix: number, iy: number) => boolean;
+type guardAction_void = (guard: entity, xx: number, yy: number, delta: number, ix: number, iy: number) => void;
 
 type guardActionEntry = {
 	weight:       guardAction_num;
@@ -185,25 +185,26 @@ let KDGuardActions: Record<string, guardActionEntry> = {
 		assign: (_guard, _xx, _yy) => {
 
 		},
-		handle: (guard, xx, yy) => {
+		handle: (guard, xx, yy, ix, iy) => {
 			// Random meandering about the cell, sometimes stopping near the player
 			if (KDRandom() < 0.2 && guard.idle) {
-				guard.gx = xx - 2;
+				guard.gx = ix;
+				guard.gy = iy;
 				if (KDRandom() < 0.5) {
-					guard.gx = xx;
-					guard.gy = yy + Math.round(KDRandom() * 2 - 1);
-				} else
+					guard.gx = ix;
+					guard.gy = iy + Math.round(KDRandom() * 2 - 1);
+				} else 
 					guard.gy = KinkyDungeonPlayerEntity.y;
 			}
 			KDGameData.GuardApplyTime = 0;
-			KinkyDungeonSetEnemyFlag(guard, "overrideMove", 10);
+			KinkyDungeonSetEnemyFlag(guard, "overrideMoveNoCom", 4);
 			KinkyDungeonSetEnemyFlag(guard, "wander", 10);
 		},
 	},
 	"release": {
 		weight: (_guard, _xx, _yy) => {
 			let missingJailUniform = KinkyDungeonMissingJailUniform();
-			return (KinkyDungeonCheckRelease() >= 0 && KinkyDungeonLockableItems().length == 0 && missingJailUniform.length < 1) ? 1000 : 0;
+			return (KinkyDungeonCheckRelease() >= 0 && KDLockableRestraints(true, true).length == 0 && missingJailUniform.length < 1) ? 1000 : 0;
 		},
 		assign: (guard, _xx, _yy) => {
 			KinkyDungeonInterruptSleep();
@@ -248,11 +249,11 @@ let KDGuardActions: Record<string, guardActionEntry> = {
 			// Always a random chance to tease
 			guard.CurrentAction = "jailTease";
 		},
-		handle: (guard, xx, yy, _delta) => {
+		handle: (guard, xx, yy, _delta, ix, iy) => {
 			let playerHasVibrator = !KDGameData.CurrentVibration &&
 				Array.from(KinkyDungeonAllRestraint()).some(i => KDRestraint(i).allowRemote);
-			guard.gx = xx - 2;
-			guard.gy = yy;
+			guard.gx = ix;
+			guard.gy = iy;
 			if (playerHasVibrator) {
 				let extraCharge = Math.round(2 + (KinkyDungeonGoddessRep.Ghost + 50) * KDRandom() * 0.15);
 				KinkyDungeonSendEvent("remoteVibe", {enemy: guard.Enemy.name, power: extraCharge, overcharge: true, noSound: false});
@@ -280,7 +281,7 @@ let KDGuardActions: Record<string, guardActionEntry> = {
 			if (!KinkyDungeonPlayerInCell()) return 0;
 			let missingJailUniform = KinkyDungeonMissingJailUniform();
 			let tooMuchRestraint = KinkyDungeonTooMuchRestraint();
-			let lockableRestraint = KinkyDungeonLockableItems();
+			let lockableRestraint = KDLockableRestraints(true, true);
 
 			return (
 					lockableRestraint.length > 0
@@ -290,7 +291,7 @@ let KDGuardActions: Record<string, guardActionEntry> = {
 		assign: (guard, _xx, _yy) => {
 			let missingJailUniform = KinkyDungeonMissingJailUniform();
 			let tooMuchRestraint = KinkyDungeonTooMuchRestraint();
-			let lockableRestraint = KinkyDungeonLockableItems();
+			let lockableRestraint = KDLockableRestraints(true, true);
 
 			if (missingJailUniform.length > 0 || KDRandom() < 0.2) {
 				if (tooMuchRestraint.length > 0 && (KDRandom() < 0.5 || missingJailUniform.length < 1) && KDGameData.JailRemoveRestraintsTimer > KinkyDungeonJailRemoveRestraintsTimerMin) {
@@ -594,6 +595,7 @@ let KDJailOutfits: Record<string, {overridelowerpriority: boolean, priority: num
 			{Name: "LegShackles", Level: 35},
 			{Name: "HighsecLegbinder", Level: 35},
 			{Name: "TrapBlindfold", Level: 35, Condition: "NoBlindfolds"},
+			{Name: "TrapEarplugs", Level: 99, Condition: "NoEarplugs"},
 			{Name: "HighsecBallGag", Level: 40},
 			{Name: "HighsecShackles", Level: 40},
 			{Name: "TrapArmbinder", Level: 40, Condition: "LessArmbinders", Priority: "MoreArmbinders"},
@@ -1035,6 +1037,9 @@ let KDJailConditions: Record<string, (r: KDJailRestraint) => boolean> = {
 	},
 	NoBlindfolds: (_r) => {
 		return !KinkyDungeonStatsChoice.get("NoBlindfolds");
+	},
+	NoEarplugs: (_r) => {
+		return !KinkyDungeonStatsChoice.get("NoEarplugs");
 	},
 	LessArmbinders: (_r) => {
 		return !KinkyDungeonStatsChoice.get("Less_Armbinders")

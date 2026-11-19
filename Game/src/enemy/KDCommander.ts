@@ -635,7 +635,7 @@ let KDCommanderOrders: Record<string, KDCommanderOrder> = {
 				&& !KDIsImmobile(enemy)
 				&& (!KDAIType[KDGetAI(enemy)]
 					|| ((!KDAIType[KDGetAI(enemy)].ambush || enemy.ambushtrigger)))
-				&& (enemy.hp < enemy.Enemy.maxhp * data.fleeThresh ||
+				&& ((enemy.hp < enemy.Enemy.maxhp * data.fleeThresh || KDIsHopeless(enemy)) ||
 					(KDEnemyRank(enemy) < 1 && !KDEnemyHasFlag(enemy, "targ_player") && KDistChebyshev(enemy.x - KDPlayer().x, enemy.y - KDPlayer().y) < 3))
 				&& (KDAssaulters > 1 || KDistChebyshev(enemy.x - KDPlayer().x, enemy.y - KDPlayer().y) > 3)
 			) return true;
@@ -646,20 +646,22 @@ let KDCommanderOrders: Record<string, KDCommanderOrder> = {
 		},
 		apply: (enemy, _data) => {
 			if (enemy.aware || enemy.vp > 0.1) {
-				KinkyDungeonSendDialogue(enemy,
+				if (!KDEnemyHasFlag(enemy, "complainhelpless")) {
+					if (KDEnemyCanTalk(enemy) && (KDHelpless(enemy) || KDBoundEffects(enemy) > 3)) {
+							//KinkyDungeonMakeNoise(5 + KDEnemyRank(enemy), enemy.x, enemy.y);
+							KinkyDungeonMakeNoiseSignal(enemy, 1, true);
+							if (KDCanHearEnemy(KDPlayer(), enemy)) {
+								KinkyDungeonSendTextMessage(5, TextGet("KDShoutHelp").replace("ENMY", enemy.CustomName || TextGet("Name" + enemy.Enemy.name)), KDBaseWhite, 1, false, true, undefined, "Ambient");
+							}
+					}
+					KinkyDungeonSetEnemyFlag(enemy, "complainhelpless", Math.floor((2) * (1 + KDRandom())));
+					KinkyDungeonSendDialogue(enemy,
 					TextGet((KDHelpless(enemy) ? "KinkyDungeonRemindJailPlayHelpless" : "KinkyDungeonRemindJailPlayBrat") + (KDGetEnemyPlayLine(enemy) ? KDGetEnemyPlayLine(enemy) : "") + Math.floor(KDRandom() * 3), KDGetGenericDialogueParams(KDPlayer(), enemy))
 						.replace("EnemyName", TextGet("Name" + enemy.Enemy.name)), KDGetColor(enemy),
-					6, 8, false, true);
-				if (KDEnemyCanTalk(enemy) && (KDHelpless(enemy) || KDBoundEffects(enemy) > 3)) {
-					if (!KDEnemyHasFlag(enemy, "shoutforhelp")) {
-						//KinkyDungeonMakeNoise(5 + KDEnemyRank(enemy), enemy.x, enemy.y);
-						KinkyDungeonMakeNoiseSignal(enemy, 1, true);
-						KinkyDungeonSetEnemyFlag(enemy, "shoutforhelp", Math.floor((10 - KDEnemyRank(enemy)) * (1 + KDRandom())));
-						if (KDCanHearEnemy(KDPlayer(), enemy)) {
-							KinkyDungeonSendTextMessage(5, TextGet("KDShoutHelp").replace("ENMY", enemy.CustomName || TextGet("Name" + enemy.Enemy.name)), KDBaseWhite, 1, false, true, undefined, "Ambient");
-						}
-					}
+					6, 8, false, false);
 				}
+				
+				
 			}
 		},
 
@@ -811,7 +813,7 @@ let KDCommanderOrders: Record<string, KDCommanderOrder> = {
 					return en != enemy && KinkyDungeonIsDisabled(en) && !KDHostile(enemy, en) && (!KDStruggleAssisters[en.id] || KDStruggleAssisters[en.id] == enemy.id)
 					&& !KDIsImprisoned(en)
 					&& KDIsTileDangerous(en, en.x, en.y, KDMapData)
-					&& KDNearbyMapTiles(en.x, en.y, 1.5).some((tile) => {
+					&& KDSomeNearbyMapTiles(en.x, en.y, 1.5, (tile) => {
 						return (tile.x != en.x || tile.y != en.y)
 							&& !KinkyDungeonEntityAt(tile.x, tile.y)
 							&& KinkyDungeonMovableTilesEnemy.includes(tile.tile)
@@ -859,7 +861,7 @@ let KDCommanderOrders: Record<string, KDCommanderOrder> = {
 					&& !KDIsImprisoned(en)
 					&& KDIsTileDangerous(en, en.x, en.y, KDMapData)
 					&& KDWillingToHelp(en, enemy)
-					&& KDNearbyMapTiles(en.x, en.y, 1.5).some((tile) => {
+					&& KDSomeNearbyMapTiles(en.x, en.y, 1.5, (tile) => {
 						return (tile.x != en.x || tile.y != en.y)
 							&& !KinkyDungeonEntityAt(tile.x, tile.y)
 							&& KinkyDungeonMovableTilesEnemy.includes(tile.tile)
@@ -872,7 +874,7 @@ let KDCommanderOrders: Record<string, KDCommanderOrder> = {
 					&& !KDIsImprisoned(en)
 					&& KDIsTileDangerous(en, en.x, en.y, KDMapData)
 					&& KDWillingToHelp(en, enemy)
-					&& KDNearbyMapTiles(en.x, en.y, 1.5).some((tile) => {
+					&& KDSomeNearbyMapTiles(en.x, en.y, 1.5, (tile) => {
 						return (tile.x != en.x || tile.y != en.y)
 							&& !KinkyDungeonEntityAt(tile.x, tile.y)
 							&& KinkyDungeonMovableTilesEnemy.includes(tile.tile)
@@ -904,11 +906,11 @@ let KDCommanderOrders: Record<string, KDCommanderOrder> = {
 					if (KDistChebyshev(enemy.x - help.x, enemy.y - help.y) < 1.5) {
 						// Bump!
 						let en = help;
-						let potentialTiles = KDNearbyMapTiles(en.x, en.y, 1.5).filter((tile) => {
+						let potentialTiles = KDFilterNearbyMapTiles(en.x, en.y, 1.5, (tile) => {
 							return (tile.x != en.x || tile.y != en.y)
 								&& (!KinkyDungeonEntityAt(tile.x, tile.y) || (
 									KinkyDungeonEntityAt(tile.x, tile.y)?.id == enemy.id)
-									&& KDNearbyMapTiles(enemy.x, enemy.y, 1.5).some((tile2) => {
+									&& KDSomeNearbyMapTiles(enemy.x, enemy.y, 1.5, (tile2) => {
 										return (tile2.x != enemy.x || tile2.y != enemy.y)
 											&& !KinkyDungeonEntityAt(tile2.x, tile2.y)
 											&& KinkyDungeonMovableTilesEnemy.includes(tile2.tile)
@@ -926,7 +928,7 @@ let KDCommanderOrders: Record<string, KDCommanderOrder> = {
 						if (potentialTiles.length > 0) {
 							let tileChosen = potentialTiles[Math.floor(potentialTiles.length * KDRandom())];
 							if (tileChosen.x == enemy.x && tileChosen.y == enemy.y) {
-								let MoveFirstTiles = KDNearbyMapTiles(enemy.x, enemy.y, 1.5).filter((tile) => {
+								let MoveFirstTiles = KDFilterNearbyMapTiles(enemy.x, enemy.y, 1.5, (tile) => {
 									return (tile.x != enemy.x || tile.y != enemy.y)
 										&& !KinkyDungeonEntityAt(tile.x, tile.y)
 										&& KinkyDungeonMovableTilesEnemy.includes(tile.tile)

@@ -96,6 +96,38 @@ function KinkyDungeonDressSet(C?: Character) {
 	KinkyDungeonNewDress = false;
 }
 
+function KDUpdateCharacterDressProtected(C?: Character) {
+	if (!C) C = KinkyDungeonPlayer;
+
+	let old = KDGetDressList().Default;
+	let newList: KinkyDungeonDress = []; 
+
+	for (let A = 0; A < old.length; A++) {
+		let item = old[A];
+		let model = ModelDefs[item.Item];
+		if (model && !KDModelIsProtected(model) && !model.Restraint) {
+			newList.push(item);
+		}
+	}
+	
+	for (let A = 0; A < C.Appearance.length; A++) {
+		if (C.Appearance[A].Model && !KDModelIsProtected(C.Appearance[A].Model)) continue;
+		if (C.Appearance[A].Model?.Restraint) continue;
+		newList.push({
+			Item: C.Appearance[A].Model?.Name || C.Appearance[A].Asset?.Name,
+			Group: C.Appearance[A].Model?.Group,
+			Filters: C.Appearance[A].Model?.Filters,
+			Properties: C.Appearance[A].Model?.Properties,
+			factionFilters: C.Appearance[A].Model?.factionFilters,
+			Property: C.Appearance[A].Property,
+			Color: (C.Appearance[A].Color) ? C.Appearance[A].Color : (C.Appearance[A].Model?.DefaultColor ? C.Appearance[A].Model?.DefaultColor : "Default"),
+			Lost: false,
+			Skirt: C.Appearance[A].Model?.Group == "Skirt" || C.Appearance[A].Model?.Categories?.includes("Skirts"),
+		},);
+	}
+	KDGetDressList().Default = newList;
+}
+
 let KDCharacterDress = new Map();
 
 function KinkyDungeonSetDress(Dress: string, Outfit?: string, Character?: Character, NoRestraints?: boolean) {
@@ -268,17 +300,17 @@ function KinkyDungeonDressPlayer (
 			// First we remove all restraints and clothes
 			let clothGroups = {};
 			for (let cloth of Object.values(DressList)) {
-				clothGroups[cloth.Group || cloth.Item] = true;
+				clothGroups[cloth.Item || cloth.Group] = true;
 			}
 			let newAppearance = {};
 			for (let A = 0; A < Character.Appearance.length; A++) {
 				if (StandalonePatched) {
 					let model = Character.Appearance[A]?.Model;
-					if (model && ((!model.Restraint && !model.Group?.startsWith("Item") && !clothGroups[model.Group || model.Name])
+					if (model && ((!model.Restraint && !model.Group?.startsWith("Item") && !clothGroups[model.Name || model.Group])
 						|| KDModelIsProtected(model) || model.SuperProtected)) {
 						//Character.Appearance.splice(A, 1);
 						//A -= 1;
-						newAppearance[model.Group || model.Name] = Character.Appearance[A];
+						newAppearance[model.Name || model.Group] = Character.Appearance[A];
 
 						if (model.Properties) {
 							for (let p of Object.values(model.Properties)) {
@@ -462,7 +494,7 @@ function KinkyDungeonDressPlayer (
 					} else if (IsModelLost(Character, clothes.Item))
 						clothes.Lost = true;
 				}
-				if (alreadyClothed[clothes.Group || clothes.Item]) continue;
+				if (alreadyClothed[clothes.Item || clothes.Group]) continue;
 				data.updateDress = true;
 				if (!noLoss && !clothes.Lost && KDRefreshCharacter.get(Character)) {
 
@@ -517,7 +549,10 @@ function KinkyDungeonDressPlayer (
 											let C = Character;
 											let faction = customFaction;
 											if (GetPalette(C, faction)[f[1].color]) {
-												if (f[1].override) {
+												if (f[1].override
+													|| (f[1].overridehsl && GetPalette(C, faction)[f[1].color].hue >= -1)
+													|| (f[1].overridergb && !(GetPalette(C, faction)[f[1].color].hue >= -1))
+												) {
 													filters[f[0]] = GetPalette(C, faction)[f[1].color];
 												} else {
 													let origFilters = filters[f[0]];
@@ -537,7 +572,7 @@ function KinkyDungeonDressPlayer (
 													filters[f[0]].hue = GetPalette(C, faction)[f[1].color].hue;
 													filters[f[0]].colorize = GetPalette(C, faction)[f[1].color].colorize;
 												}
-												if (f[1].desaturate) {
+												if (f[1].desaturate && (filters[f[0]].hue < 0 || isNaN(filters[f[0]].hue))) {
 													filters[f[0]].saturation = 0;
 												}
 											}
@@ -550,16 +585,16 @@ function KinkyDungeonDressPlayer (
 
 						let item = KDInventoryWear(Character, clothes.Item, clothes.Group, undefined, 
 							clothes.Color, filters, clothes.Properties, clothes.factionFilters);
-						alreadyClothed[clothes.Group || clothes.Item] = true;
+						alreadyClothed[clothes.Item || clothes.Group] = true;
 						if (item) {
 							if (clothes.OverridePriority) {
 								if (item) {
 									if (!item.Property) item.Property = {OverridePriority: clothes.OverridePriority};
 									else item.Property.OverridePriority = clothes.OverridePriority;
 								}
-							} else if (KDClothOverrides[clothes.Group || clothes.Item] && KDClothOverrides[clothes.Group || clothes.Item][clothes.Item] != undefined) {
-								if (!item.Property) item.Property = {OverridePriority: KDClothOverrides[clothes.Group || clothes.Item][clothes.Item]};
-								else item.Property.OverridePriority = KDClothOverrides[clothes.Group || clothes.Item][clothes.Item];
+							} else if (KDClothOverrides[clothes.Item || clothes.Group] && KDClothOverrides[clothes.Item || clothes.Group][clothes.Item] != undefined) {
+								if (!item.Property) item.Property = {OverridePriority: KDClothOverrides[clothes.Item || clothes.Group][clothes.Item]};
+								else item.Property.OverridePriority = KDClothOverrides[clothes.Item || clothes.Group][clothes.Item];
 							}
 							if (clothes.Property) item.Property = clothes.Property;
 							// Ignored because BC uses string[] as a type!
@@ -575,7 +610,7 @@ function KinkyDungeonDressPlayer (
 			}
 		} else {
 			for (let clothes of DressList) {
-				if (alreadyClothed[clothes.Group || clothes.Item]) continue;
+				if (alreadyClothed[clothes.Item || clothes.Group]) continue;
 				data.updateDress = true;
 
 				//if (!clothes.Lost) {
@@ -591,7 +626,9 @@ function KinkyDungeonDressPlayer (
 										let C = Character;
 										let faction = customFaction;
 										if (GetPalette(C, faction)[f[1].color]) {
-											if (f[1].override) {
+											if (f[1].override
+													|| (f[1].overridehsl && GetPalette(C, faction)[f[1].color].hue >= -1)
+													|| (f[1].overridergb && !(GetPalette(C, faction)[f[1].color].hue >= -1))) {
 												filters[f[0]] = GetPalette(C, faction)[f[1].color];
 											} else {
 												let origFilters = filters[f[0]];
@@ -611,7 +648,7 @@ function KinkyDungeonDressPlayer (
 												filters[f[0]].hue = GetPalette(C, faction)[f[1].color].hue;
 												filters[f[0]].colorize = GetPalette(C, faction)[f[1].color].colorize;
 											}
-											if (f[1].desaturate) {
+											if (f[1].desaturate && (filters[f[0]].hue < 0 || isNaN(filters[f[0]].hue))) {
 												filters[f[0]].saturation = 0;
 											}
 										}
@@ -625,7 +662,7 @@ function KinkyDungeonDressPlayer (
 					KDInventoryWear(Character, clothes.Item, clothes.Group, undefined, 
 						clothes.Color, filters, 
 						clothes.Properties, clothes.factionFilters);
-					alreadyClothed[clothes.Group || clothes.Item] = true;
+					alreadyClothed[clothes.Item || clothes.Group] = true;
 				}
 				//}
 
@@ -653,7 +690,7 @@ function KinkyDungeonDressPlayer (
 		let AllowedLegPoses = StandalonePatched ? KDGetAvailablePosesLegs(Character, customPlayerTags) : [];
 
 		if (Character == KinkyDungeonPlayer) {
-			if (!KinkyDungeonPlayerTags.get("LieDown") && (KDGameData.KneelTurns > 0 || KDGameData.SleepTurns > 0)) {
+			if (!KinkyDungeonPlayerTags.get("LieDown") && (KDIsOnKnees(KDPlayer()) || KDGameData.SleepTurns > 0)) {
 				if (StandalonePatched) {
 					// Force player into being on the ground
 					let newLegPoses = AllowedLegPoses.filter((element) => {return !STANDPOSES.includes(element);});
@@ -825,7 +862,7 @@ function KinkyDungeonDressPlayer (
 			|| Character == KDSpeakerNPC
 			|| Character == KDPreviewModel
 			|| !(KDCurrentModels.get(Character)?.Poses?.Body) // refresh if not haired
-			|| Math.random() < 0.05)
+			|| (Math.random() < 0.05 && KDForceEnemyUpdate++ == 0)) // one per frame max
 			UpdateModels(Character, Xray, customFaction);
 		let ReUpdate = false;
 
@@ -871,6 +908,12 @@ function KinkyDungeonDressPlayer (
 				undefined, undefined);
 			ReUpdate = true;
 		}
+		if (!KDCurrentModels.get(Character)?.Poses?.Blush && KDModelFace[facestyle]) {
+			KDInventoryWear(Character, "Blush",
+				undefined, undefined, undefined,
+				undefined, undefined);
+			ReUpdate = true;
+		}
 		if (!KDCurrentModels.get(Character)?.Poses?.Cosplay && KDModelCosplay[cosplaystyle]) {
 			for (let cosplay of Object.values(KDModelCosplay[cosplaystyle])) {
 				KDInventoryWear(Character, cosplay.Item, undefined, undefined, undefined, 
@@ -880,7 +923,8 @@ function KinkyDungeonDressPlayer (
 			}
 		}
 
-		if (KDRefreshCharacter.get(Character) || Character == KinkyDungeonPlayer || Character == KDSpeakerNPC)
+		if (KDRefreshCharacter.get(Character) || Character == KinkyDungeonPlayer || Character == KDSpeakerNPC
+			|| !(KDCurrentModels.get(Character)?.Poses?.Body))
 			if (ReUpdate) UpdateModels(Character, Xray, customFaction);
 		if (Force) {
 			ForceRefreshModels(Character);
@@ -1060,18 +1104,18 @@ function KDCharacterAppearanceNaked(C: Character): void {
 function KDApplyItem(C: Character, inv: item, tags: any, customFaction: string = undefined, forceCustomFaction?: boolean): void {
 	if (StandalonePatched) {
 		let restraint = KDRestraint(inv);
-		let AssetGroup = restraint.AssetGroup ? restraint.AssetGroup : restraint.Group;
+		let AssetGroup = restraint.Group;
 		let faction = (inv.forceFaction != undefined) ? inv.forceFaction : (((forceCustomFaction || !inv.faction) && customFaction) ? customFaction : (inv.faction ? inv.faction : ""));
 				
 		// faction color system
-		let filters =  (restraint.Filters || (ModelDefs[restraint.Model || restraint.Asset])?.Filters) ?
-			JSON.parse(JSON.stringify(restraint.Filters || (ModelDefs[restraint.Model || restraint.Asset])?.Filters))
+		let filters =  (restraint.Filters || (ModelDefs[restraint.Model])?.Filters) ?
+			JSON.parse(JSON.stringify(restraint.Filters || (ModelDefs[restraint.Model])?.Filters))
 			: {};
-		let Properties =  (restraint.Properties || (ModelDefs[restraint.Model || restraint.Asset])?.Properties) ?
-			JSON.parse(JSON.stringify(restraint.Properties || (ModelDefs[restraint.Model || restraint.Asset])?.Properties))
+		let Properties =  (restraint.Properties || (ModelDefs[restraint.Model])?.Properties) ?
+			JSON.parse(JSON.stringify(restraint.Properties || (ModelDefs[restraint.Model])?.Properties))
 			: {};
-		let factionFilters =  (restraint.factionFilters || (ModelDefs[restraint.Model || restraint.Asset])?.factionFilters) ?
-			JSON.parse(JSON.stringify(restraint.factionFilters || (ModelDefs[restraint.Model || restraint.Asset])?.factionFilters))
+		let factionFilters =  (restraint.factionFilters || (ModelDefs[restraint.Model])?.factionFilters) ?
+			JSON.parse(JSON.stringify(restraint.factionFilters || (ModelDefs[restraint.Model])?.factionFilters))
 			: {};
 		if (!forceCustomFaction) factionFilters = undefined; // not for restraints, those are defined by restraint
 
@@ -1079,7 +1123,9 @@ function KDApplyItem(C: Character, inv: item, tags: any, customFaction: string =
 		if (restraint.factionFilters && faction && GetPalette(C, faction)) {
 			for (let f of Object.entries(restraint.factionFilters)) {
 				if (GetPalette(C, faction)[f[1].color]) {
-					if (f[1].override) {
+					if (f[1].override
+							|| (f[1].overridehsl && GetPalette(C, faction)[f[1].color].hue >= -1)
+							|| (f[1].overridergb && !(GetPalette(C, faction)[f[1].color].hue >= -1))) {
 						filters[f[0]] = GetPalette(C, faction, !f[1].desaturate, !f[1].desaturate)[f[1].color];
 					} else {
 						let origFilters = filters[f[0]];
@@ -1098,7 +1144,7 @@ function KDApplyItem(C: Character, inv: item, tags: any, customFaction: string =
 						filters[f[0]].hue = GetPalette(C, faction)[f[1].color].hue;
 						filters[f[0]].colorize = GetPalette(C, faction)[f[1].color].colorize;
 					}
-					if (f[1].desaturate) {
+					if (f[1].desaturate && (filters[f[0]].hue < 0 || isNaN(filters[f[0]].hue))) {
 						filters[f[0]].saturation = 0;
 					}
 				}
@@ -1129,7 +1175,7 @@ function KDApplyItem(C: Character, inv: item, tags: any, customFaction: string =
 		let placed: Item = null;
 
 		if (!restraint.armor || KDToggles.DrawArmor) {
-			placed = KDAddModel(C, AssetGroup, ModelDefs[restraint.Model || restraint.Asset], "", data.Filters,
+			placed = KDAddModel(C, AssetGroup, ModelDefs[restraint.Model], "", data.Filters,
 				 inv, data.Properties, data.factionFilters);
 		}
 
@@ -1142,7 +1188,7 @@ function KDApplyItem(C: Character, inv: item, tags: any, customFaction: string =
 					type = restraint.changeRenderType[key];
 				}
 			}
-			placed.Property = {Type: type, Modules: restraint.Modules, Difficulty: restraint.power, LockedBy: inv.lock || (KDGetCurse(inv) && KDCurses[KDGetCurse(inv)].lock) ? "MetalPadlock" : undefined};
+			placed.Property = {Type: type, Difficulty: restraint.power, LockedBy: inv.lock || (KDGetCurse(inv) && KDCurses[KDGetCurse(inv)].lock) ? "MetalPadlock" : undefined};
 		}
 		return;
 	}
@@ -1353,6 +1399,10 @@ function KDGetFactionFilters(faction: string): Record<string, LayerFilter> {
  *
  */
 function KinkyDungeonHeadpatModal() {
+	let charid = KDMAINPORTRAITID;
+    let hardpointlocs = GetHardpointLoc(KinkyDungeonPlayer, KDPlayerPos().x, KDPlayerPos().y, KDCharSize, "HeadpatHead", KDToggles.FlipPlayer, 
+	charid)
+	if (!hardpointlocs) return;
     const id = "kinky-dungeon-headpat-modal";
     if (document.querySelector(`#${id}`)) {
         let el = document.getElementById(id);
@@ -1370,7 +1420,6 @@ function KinkyDungeonHeadpatModal() {
 		transform: "none",
         //backgroundColor: "#ffffff"
     }
-    let hardpointlocs = GetHardpointLoc(KinkyDungeonPlayer, KDPlayerPos().x, KDPlayerPos().y, KDCharSize, "HeadpatHead", KDToggles.FlipPlayer)
     pxassign.top = `${(windowoffsets.y + (hardpointlocs.y * windowoffsets.heightscale) - ((windowoffsets.canvasheight * 0.05) / 2))}px`;
     pxassign.left = `${(windowoffsets.x + (hardpointlocs.x * windowoffsets.widthscale) - ((windowoffsets.canvaswidth * 0.08) / 2))}px`;
     pxassign.transform = `rotate(${hardpointlocs.angle}rad)`

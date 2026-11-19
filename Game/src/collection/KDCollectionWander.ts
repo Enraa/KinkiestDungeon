@@ -74,11 +74,12 @@ function KDChangeEntityFacilityAction(entity: entity, action: string) {
 function KDSetServantSpawnTemplate(e: entity) {
 	if (e) {
 		e.allied = 9999;
-		e.hostile = 0;
+		KDResetAggro(e, KDPlayer());
 		e.boundLevel = 0;
 		e.faction = "Player";
 		KDNPCRefreshBondage(e.id, 0, true);
 		KinkyDungeonSetEnemyFlag(e, "NoFollow", -1);
+		KinkyDungeonSetEnemyFlag(e, "FollowMe", 0);
 		e.hp = e.Enemy.maxhp;
 		e.hostile = undefined;
 		e.rage = undefined;

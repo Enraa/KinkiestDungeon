@@ -96,6 +96,7 @@ let KDDrawGameContextMenu = {
 	},
 
 	Game: (draw, mouseX, mouseY) => {
+		if (KDFocusControls) return [];
 		let doHighlightItem = () => {
 			let {
 				options, optionImages, optionActions, optionGrey, optionText, optionColor, optionFilter
@@ -205,7 +206,11 @@ function KDGetGameContextActionsVanilla(
 			}
 
 			options.push("Aggro");
-			optionText.Aggro = TextGet("KDContextMenu_" + (unaware ? "AggroSneak" : (aggroothers ? "Aggro" : "Retaliate")));
+			if (KinkyDungeonChestConfirm) {
+				optionText.Aggro = TextGet("KDContextMenu_AggroConfirm");
+			}
+			else
+				optionText.Aggro = TextGet("KDContextMenu_" + (unaware ? "AggroSneak" : (aggroothers ? "Aggro" : "Retaliate")));
 			optionImages.Aggro = unaware ? "AggroSneak" : (aggroothers ? "Aggro" : "Retaliate");
 			if (!KDCanAttackEnemy(entity, KDPlayer(), undefined, undefined, undefined)) {
 				optionGrey.Aggro = true;
@@ -220,9 +225,14 @@ function KDGetGameContextActionsVanilla(
 				optionActions.Aggro = () => {
 					KDCancelAutoWait();
 					if (KDistChebyshev(entity.x - KDPlayer().x, entity.y - KDPlayer().y) <= rng)
-						KDSendInput("doaggro", {
-							tx: entity.x, ty: entity.y, id: entity.id, unaware: unaware, aggroothers: aggroothers
-						})
+						if (KinkyDungeonChestConfirm) {
+							KDSendInput("doaggro", {
+								tx: entity.x, ty: entity.y, id: entity.id, unaware: unaware, aggroothers: aggroothers
+							})
+						} else {
+							KinkyDungeonChestConfirm = true;
+                			if (KDSoundEnabled()) AudioPlayInstantSoundKD(KinkyDungeonRootDirectory + "Audio/ClickError.ogg");
+						}
 				}
 			}
 			
@@ -369,6 +379,16 @@ function KDGetGameContextActionsVanilla(
 			);
 		}
 	}
+	if (KDMapData.GroundItems?.some((itm) => {return itm.x == KinkyDungeonTargetX && itm.y == KinkyDungeonTargetY;})) {
+		// Pickup
+		options.push("Pickup");
+		optionImages.Interact = "Pickup";
+		optionActions.Pickup = () => {
+			KDCancelAutoWait();
+			KDContextMenu = false;
+			KDSendInput("pickup", {x: KinkyDungeonTargetX, y: KinkyDungeonTargetY});
+		}
+	}
 
 	if (!tile?.Type && (!entity || (entity.player && KinkyDungeonStairTiles.includes(tileType)))
 		&& KDInteractableTiles.includes(tileType)) {
@@ -410,8 +430,8 @@ function KDGetGameContextActionsVanilla(
 								zIndex: 99,
 							});
 						let sprintcost = KDSprintCost();
-						optionText.Sprint = TextGet("KDContextMenu_Sprint").replace("AMNT", Math.round(-sprintcost*10) + "sp");
-						DrawTextKD(Math.round(-sprintcost*10) + "sp",
+						optionText.Sprint = TextGet("KDContextMenu_Sprint").replace("AMNT", Math.round(-sprintcost*10) + TextGet("KDSprintCostUnit"));
+						DrawTextKD(Math.round(-sprintcost*10) + TextGet("KDSprintCostUnit"),
 							(newX - KinkyDungeonCamX + 0.5)*KinkyDungeonGridSizeDisplay,
 							(newY - KinkyDungeonCamY - 0.25)*KinkyDungeonGridSizeDisplay, KDBaseMint);
 					}
@@ -487,6 +507,8 @@ function KDGetRestraintContextActionsVanilla(
 			if (button.allowed) {
 				options.push(button.type);
 				optionImages[button.type] = button.image || button.type;
+				if (button.text)
+					optionText[button.type] = button.text;
 				optionActions[button.type] = button.action;
 			}
 		}
@@ -509,7 +531,7 @@ function KDContextMenuWeaponSpecialSuff(special: KDWeaponSpecial) {
 }
 
 function KDShowInventory(container: string[]) {
-	KinkyDungeonDrawState = "Inventory";
+	KDGoToScreen("Inventory");
 	KDGameData.InventoryActionContainer = container || [];
 	if (container?.length > 0)
 		KDGameData.InventoryAction = container[0];

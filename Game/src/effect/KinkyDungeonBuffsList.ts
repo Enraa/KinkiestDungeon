@@ -296,14 +296,14 @@ const KDBuffReference: Record<string, KDBuff[]> = {
 
 const KDDisenchantSelf: KDBuff = {id: "DisenchantSelf", aura: KDBaseLightBlue, type: "Disenchant", power: 9.9, player: true, enemies: true, duration: 10,};
 
-let KDCustomBuff: Record<string, (entity: entity, buff: KDBuff) => void> = {
+let KDCustomBuff: Record<string, (entity: entity, buff: KDBuff, delta: number) => void> = {
 };
 
 /**
  */
 let KDBuffClick: Record<string, (buff: KDBuff, entity: entity, data: any) => void> = {
 	"Training": (_buff, entity, data) => {
-		KinkyDungeonDrawState = "Progress";
+		KDGoToScreen("Progress");
 		if (data?.training) {
 			KDCurrentProgressMainSelection = "Training" + data.training;
 		}
@@ -314,7 +314,7 @@ let KDBuffClick: Record<string, (buff: KDBuff, entity: entity, data: any) => voi
 		if (b && b.duration > 0) {
 			b.duration = 0;
 		} else {
-			KinkyDungeonApplyBuffToEntity(entity,
+			KDApplyBuffToEntity(entity,
 				{id: "d_SlimeMimic", click: "SlimeMimic", type: "d_SlimeMimic", aura: KDBaseWhite, auraSprite: "Null", duration: 9999, infinite: true, power: 1}
 			);
 		}
@@ -324,11 +324,11 @@ let KDBuffClick: Record<string, (buff: KDBuff, entity: entity, data: any) => voi
 		let b = KinkyDungeonPlayerBuffs.d_OrgasmResist;
 		if (b && b.duration > 0) {
 			b.duration = 0;
-			KinkyDungeonApplyBuffToEntity(entity,
+			KDApplyBuffToEntity(entity,
 				{id: "e_OrgasmResist", click: "OrgasmResist", type: "e_OrgasmResist", buffSprite: true, aura: KDBaseWhite, auraSprite: "Null", duration: 9999, infinite: true, power: 1}
 			);
 		} else {
-			KinkyDungeonApplyBuffToEntity(entity,
+			KDApplyBuffToEntity(entity,
 				{id: "d_OrgasmResist", click: "OrgasmResist", type: "d_OrgasmResist", buffSprite: true, aura: KDBaseWhite, auraSprite: "Null", duration: 9999, infinite: true, power: 1}
 			);
 			if (KinkyDungeonPlayerBuffs.e_OrgasmResist) KinkyDungeonPlayerBuffs.e_OrgasmResist.duration = 0;
